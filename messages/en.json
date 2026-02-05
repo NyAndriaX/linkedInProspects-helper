@@ -1,0 +1,321 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No",
+    "publish": "Publish",
+    "reset": "Reset",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "views": "views",
+    "update": "Update"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "posts": "Posts",
+    "schedule": "Schedule",
+    "settings": "Settings",
+    "signOut": "Sign out"
+  },
+  "home": {
+    "hello": "Hello, {name}",
+    "subtitle": "Manage your LinkedIn posts and content.",
+    "completeProfile": "Complete your profile",
+    "completeProfileDescShort": "Add your details.",
+    "completeProfileDescLong": "Add your professional details to generate posts with AI.",
+    "setup": "Setup",
+    "stats": {
+      "total": "Total",
+      "drafts": "Drafts",
+      "ready": "Ready",
+      "published": "Published",
+      "totalViews": "Total Views"
+    }
+  },
+  "posts": {
+    "title": "Posts",
+    "subtitle": "Create and manage your LinkedIn posts",
+    "newPost": "New Post",
+    "status": "Status:",
+    "filter": {
+      "all": "All posts",
+      "draft": "Drafts",
+      "ready": "Ready to publish",
+      "published": "Published"
+    },
+    "generatePost": "Generate Post",
+    "completeProfileFirst": "Complete your profile settings first",
+    "goToSettings": "Go to Settings",
+    "table": {
+      "title": "Title",
+      "content": "Content",
+      "status": "Status",
+      "views": "Views",
+      "created": "Created",
+      "actions": "Actions"
+    },
+    "publishConfirm": {
+      "title": "Publish to LinkedIn?",
+      "description": "This will post to your LinkedIn profile."
+    },
+    "empty": {
+      "noPostsYet": "No posts yet",
+      "noStatusPosts": "No {status} posts",
+      "createFirst": "Create your first post"
+    },
+    "modal": {
+      "editTitle": "Edit Post",
+      "createTitle": "Create Post",
+      "titlePlaceholder": "Give your post a title...",
+      "contentPlaceholder": "Write your LinkedIn post content here...",
+      "statusDraft": "Draft - Work in progress",
+      "statusReady": "Ready - Ready to publish",
+      "statusPublished": "Published - Already posted",
+      "saveChanges": "Save Changes",
+      "createPost": "Create Post"
+    },
+    "view": {
+      "created": "Created:",
+      "published": "Published:"
+    },
+    "generate": {
+      "title": "Generate Posts with AI",
+      "howMany": "How many posts would you like to generate?",
+      "placeholder": "Number of posts",
+      "button": "Generate {count} Post",
+      "buttonPlural": "Generate {count} Posts"
+    },
+    "messages": {
+      "updated": "Post updated",
+      "created": "Post created",
+      "deleted": "Post deleted",
+      "publishedSuccess": "Post published to LinkedIn!",
+      "publishFailed": "Failed to publish",
+      "generateSuccess": "Successfully generated {count} post(s)!",
+      "generateFailed": "Failed to generate posts"
+    }
+  },
+  "schedule": {
+    "title": "Publication Schedule",
+    "subtitle": "Schedule your LinkedIn posts to be published automatically at specific times.",
+    "addSchedule": "Add Schedule",
+    "howItWorks": {
+      "title": "How it works:",
+      "description": "Create schedules to automatically publish your \"Ready\" posts. Posts are published in order (oldest first). Make sure you have posts marked as \"Ready\" in your posts list."
+    },
+    "table": {
+      "name": "Name",
+      "day": "Day",
+      "times": "Times",
+      "timezone": "Timezone",
+      "nextRun": "Next Run",
+      "active": "Active",
+      "actions": "Actions"
+    },
+    "recurring": "Recurring",
+    "oneTime": "One-time",
+    "days": {
+      "sunday": "Sunday",
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday"
+    },
+    "empty": {
+      "noSchedules": "No schedules yet",
+      "createFirst": "Create your first schedule"
+    },
+    "modal": {
+      "editTitle": "Edit Schedule",
+      "createTitle": "Create Schedule",
+      "name": "Schedule Name",
+      "namePlaceholder": "e.g., Monday morning posts",
+      "nameRequired": "Please enter a name",
+      "dayOfWeek": "Day of Week",
+      "dayRequired": "Please select a day",
+      "selectDay": "Select day",
+      "publicationTimes": "Publication Times",
+      "timesHelp": "Add multiple times to publish several posts on this day",
+      "timeRequired": "Time required",
+      "selectTime": "Select time",
+      "addTime": "Add Time",
+      "timezone": "Timezone",
+      "timezoneRequired": "Please select a timezone",
+      "selectTimezone": "Select timezone",
+      "recurringLabel": "Recurring",
+      "recurringHelp": "Recurring schedules repeat every week. Non-recurring schedules run only once."
+    },
+    "deleteConfirm": {
+      "title": "Delete this schedule?",
+      "description": "This action cannot be undone."
+    },
+    "messages": {
+      "deleted": "Schedule deleted successfully",
+      "created": "Schedule created successfully",
+      "updated": "Schedule updated successfully",
+      "activated": "Schedule activated",
+      "paused": "Schedule paused",
+      "deleteFailed": "Failed to delete schedule",
+      "createFailed": "Failed to create schedule",
+      "updateFailed": "Failed to update schedule"
+    }
+  },
+  "settings": {
+    "title": "Profile Settings",
+    "subtitle": "Configure your profile to generate personalized LinkedIn content that matches your professional identity and goals.",
+    "professional": {
+      "title": "Professional Information",
+      "jobTitle": "Job Title",
+      "jobTitleRequired": "Please enter your job title",
+      "jobTitlePlaceholder": "e.g., CEO, Marketing Director, Software Engineer",
+      "company": "Company",
+      "companyPlaceholder": "e.g., Acme Inc., Freelance",
+      "industry": "Industry",
+      "industryRequired": "Please select your industry",
+      "industryPlaceholder": "Select your industry",
+      "targetAudience": "Target Audience",
+      "targetAudiencePlaceholder": "e.g., Startup founders, HR managers, Tech enthusiasts..."
+    },
+    "content": {
+      "title": "Content Preferences",
+      "preferredTone": "Preferred Tone",
+      "toneRequired": "Please select a tone",
+      "tonePlaceholder": "Select your preferred tone",
+      "language": "Content Language",
+      "topics": "Topics You Cover",
+      "topicsPlaceholder": "Type topics and press Enter (e.g., Leadership, AI, Sales)",
+      "expertise": "Your Areas of Expertise",
+      "expertisePlaceholder": "Type your expertise and press Enter"
+    },
+    "goals": {
+      "title": "Content Goals",
+      "question": "What do you want to achieve with your LinkedIn content?",
+      "required": "Please select at least one goal"
+    },
+    "actions": {
+      "resetToDefaults": "Reset to Defaults",
+      "saveProfile": "Save Profile"
+    },
+    "messages": {
+      "saved": "Profile saved successfully!",
+      "saveFailed": "Failed to save profile. Please try again.",
+      "reset": "Profile reset to defaults."
+    }
+  },
+  "login": {
+    "tagline": "Create professional LinkedIn content with ease.",
+    "error": {
+      "title": "Connection error",
+      "description": "Please try again."
+    },
+    "continueWithLinkedIn": "Continue with LinkedIn",
+    "terms": "By signing in, you agree to our terms of service."
+  },
+  "industries": {
+    "tech": "Technology / IT",
+    "finance": "Finance / Banking",
+    "healthcare": "Healthcare / Medical",
+    "education": "Education / Training",
+    "marketing": "Marketing / Advertising",
+    "consulting": "Consulting",
+    "real_estate": "Real Estate",
+    "retail": "Retail / E-commerce",
+    "manufacturing": "Manufacturing",
+    "legal": "Legal Services",
+    "hr": "Human Resources",
+    "media": "Media / Entertainment",
+    "nonprofit": "Non-profit",
+    "government": "Government / Public Sector",
+    "startup": "Startup / Entrepreneurship",
+    "other": "Other"
+  },
+  "contentGoals": {
+    "thought_leadership": {
+      "label": "Thought Leadership",
+      "description": "Position yourself as an expert in your field"
+    },
+    "lead_generation": {
+      "label": "Lead Generation",
+      "description": "Attract potential clients or customers"
+    },
+    "brand_awareness": {
+      "label": "Brand Awareness",
+      "description": "Increase visibility for you or your company"
+    },
+    "network_growth": {
+      "label": "Network Growth",
+      "description": "Expand your professional connections"
+    },
+    "recruitment": {
+      "label": "Recruitment",
+      "description": "Attract talent to your organization"
+    },
+    "education": {
+      "label": "Education",
+      "description": "Share knowledge and teach your audience"
+    },
+    "engagement": {
+      "label": "Engagement",
+      "description": "Build community and spark conversations"
+    }
+  },
+  "tones": {
+    "professional": {
+      "label": "Professional",
+      "description": "Formal and business-oriented"
+    },
+    "casual": {
+      "label": "Casual",
+      "description": "Friendly and approachable"
+    },
+    "inspirational": {
+      "label": "Inspirational",
+      "description": "Motivating and uplifting"
+    },
+    "educational": {
+      "label": "Educational",
+      "description": "Informative and instructive"
+    },
+    "storytelling": {
+      "label": "Storytelling",
+      "description": "Narrative and personal"
+    },
+    "provocative": {
+      "label": "Provocative",
+      "description": "Bold and thought-provoking"
+    },
+    "humorous": {
+      "label": "Humorous",
+      "description": "Light-hearted with wit"
+    }
+  },
+  "postStatus": {
+    "draft": "Draft",
+    "ready": "Ready",
+    "published": "Published"
+  },
+  "postTypes": {
+    "text": "Text Post",
+    "image": "Image Post",
+    "carousel": "Carousel",
+    "video": "Video",
+    "poll": "Poll",
+    "article": "Article",
+    "document": "Document"
+  },
+  "postingFrequency": {
+    "daily": "Daily",
+    "several_per_week": "Several times per week",
+    "weekly": "Once a week",
+    "bi_weekly": "Every two weeks",
+    "monthly": "Once a month"
+  }
+}

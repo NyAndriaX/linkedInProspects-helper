@@ -1,0 +1,321 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "close": "Fermer",
+    "yes": "Oui",
+    "no": "Non",
+    "publish": "Publier",
+    "reset": "Réinitialiser",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "views": "vues",
+    "update": "Mettre à jour"
+  },
+  "navigation": {
+    "dashboard": "Tableau de bord",
+    "posts": "Publications",
+    "schedule": "Planification",
+    "settings": "Paramètres",
+    "signOut": "Déconnexion"
+  },
+  "home": {
+    "hello": "Bonjour, {name}",
+    "subtitle": "Gérez vos publications et contenus LinkedIn.",
+    "completeProfile": "Complétez votre profil",
+    "completeProfileDescShort": "Ajoutez vos informations.",
+    "completeProfileDescLong": "Ajoutez vos informations professionnelles pour générer des publications avec l'IA.",
+    "setup": "Configurer",
+    "stats": {
+      "total": "Total",
+      "drafts": "Brouillons",
+      "ready": "Prêts",
+      "published": "Publiés",
+      "totalViews": "Vues totales"
+    }
+  },
+  "posts": {
+    "title": "Publications",
+    "subtitle": "Créez et gérez vos publications LinkedIn",
+    "newPost": "Nouvelle publication",
+    "status": "Statut :",
+    "filter": {
+      "all": "Toutes les publications",
+      "draft": "Brouillons",
+      "ready": "Prêtes à publier",
+      "published": "Publiées"
+    },
+    "generatePost": "Générer une publication",
+    "completeProfileFirst": "Complétez d'abord les paramètres de votre profil",
+    "goToSettings": "Aller aux paramètres",
+    "table": {
+      "title": "Titre",
+      "content": "Contenu",
+      "status": "Statut",
+      "views": "Vues",
+      "created": "Créé le",
+      "actions": "Actions"
+    },
+    "publishConfirm": {
+      "title": "Publier sur LinkedIn ?",
+      "description": "Cela publiera sur votre profil LinkedIn."
+    },
+    "empty": {
+      "noPostsYet": "Aucune publication pour le moment",
+      "noStatusPosts": "Aucune publication {status}",
+      "createFirst": "Créez votre première publication"
+    },
+    "modal": {
+      "editTitle": "Modifier la publication",
+      "createTitle": "Créer une publication",
+      "titlePlaceholder": "Donnez un titre à votre publication...",
+      "contentPlaceholder": "Écrivez le contenu de votre publication LinkedIn ici...",
+      "statusDraft": "Brouillon - En cours de rédaction",
+      "statusReady": "Prêt - Prêt à publier",
+      "statusPublished": "Publié - Déjà posté",
+      "saveChanges": "Enregistrer les modifications",
+      "createPost": "Créer la publication"
+    },
+    "view": {
+      "created": "Créé le :",
+      "published": "Publié le :"
+    },
+    "generate": {
+      "title": "Générer des publications avec l'IA",
+      "howMany": "Combien de publications souhaitez-vous générer ?",
+      "placeholder": "Nombre de publications",
+      "button": "Générer {count} publication",
+      "buttonPlural": "Générer {count} publications"
+    },
+    "messages": {
+      "updated": "Publication mise à jour",
+      "created": "Publication créée",
+      "deleted": "Publication supprimée",
+      "publishedSuccess": "Publication publiée sur LinkedIn !",
+      "publishFailed": "Échec de la publication",
+      "generateSuccess": "Publication(s) générée(s) avec succès !",
+      "generateFailed": "Échec de la génération des publications"
+    }
+  },
+  "schedule": {
+    "title": "Planification des publications",
+    "subtitle": "Planifiez vos publications LinkedIn pour qu'elles soient publiées automatiquement à des heures précises.",
+    "addSchedule": "Ajouter une planification",
+    "howItWorks": {
+      "title": "Comment ça marche :",
+      "description": "Créez des planifications pour publier automatiquement vos publications \"Prêtes\". Les publications sont publiées dans l'ordre (la plus ancienne en premier). Assurez-vous d'avoir des publications marquées comme \"Prêtes\" dans votre liste."
+    },
+    "table": {
+      "name": "Nom",
+      "day": "Jour",
+      "times": "Heures",
+      "timezone": "Fuseau horaire",
+      "nextRun": "Prochaine exécution",
+      "active": "Actif",
+      "actions": "Actions"
+    },
+    "recurring": "Récurrent",
+    "oneTime": "Une seule fois",
+    "days": {
+      "sunday": "Dimanche",
+      "monday": "Lundi",
+      "tuesday": "Mardi",
+      "wednesday": "Mercredi",
+      "thursday": "Jeudi",
+      "friday": "Vendredi",
+      "saturday": "Samedi"
+    },
+    "empty": {
+      "noSchedules": "Aucune planification pour le moment",
+      "createFirst": "Créez votre première planification"
+    },
+    "modal": {
+      "editTitle": "Modifier la planification",
+      "createTitle": "Créer une planification",
+      "name": "Nom de la planification",
+      "namePlaceholder": "ex: Publications du lundi matin",
+      "nameRequired": "Veuillez entrer un nom",
+      "dayOfWeek": "Jour de la semaine",
+      "dayRequired": "Veuillez sélectionner un jour",
+      "selectDay": "Sélectionner un jour",
+      "publicationTimes": "Heures de publication",
+      "timesHelp": "Ajoutez plusieurs heures pour publier plusieurs publications ce jour-là",
+      "timeRequired": "Heure requise",
+      "selectTime": "Sélectionner l'heure",
+      "addTime": "Ajouter une heure",
+      "timezone": "Fuseau horaire",
+      "timezoneRequired": "Veuillez sélectionner un fuseau horaire",
+      "selectTimezone": "Sélectionner le fuseau horaire",
+      "recurringLabel": "Récurrent",
+      "recurringHelp": "Les planifications récurrentes se répètent chaque semaine. Les planifications non récurrentes ne s'exécutent qu'une seule fois."
+    },
+    "deleteConfirm": {
+      "title": "Supprimer cette planification ?",
+      "description": "Cette action est irréversible."
+    },
+    "messages": {
+      "deleted": "Planification supprimée avec succès",
+      "created": "Planification créée avec succès",
+      "updated": "Planification mise à jour avec succès",
+      "activated": "Planification activée",
+      "paused": "Planification mise en pause",
+      "deleteFailed": "Échec de la suppression de la planification",
+      "createFailed": "Échec de la création de la planification",
+      "updateFailed": "Échec de la mise à jour de la planification"
+    }
+  },
+  "settings": {
+    "title": "Paramètres du profil",
+    "subtitle": "Configurez votre profil pour générer du contenu LinkedIn personnalisé qui correspond à votre identité professionnelle et à vos objectifs.",
+    "professional": {
+      "title": "Informations professionnelles",
+      "jobTitle": "Poste",
+      "jobTitleRequired": "Veuillez entrer votre poste",
+      "jobTitlePlaceholder": "ex: PDG, Directeur Marketing, Ingénieur logiciel",
+      "company": "Entreprise",
+      "companyPlaceholder": "ex: Acme Inc., Freelance",
+      "industry": "Secteur d'activité",
+      "industryRequired": "Veuillez sélectionner votre secteur",
+      "industryPlaceholder": "Sélectionnez votre secteur",
+      "targetAudience": "Audience cible",
+      "targetAudiencePlaceholder": "ex: Fondateurs de startups, Responsables RH, Passionnés de tech..."
+    },
+    "content": {
+      "title": "Préférences de contenu",
+      "preferredTone": "Ton préféré",
+      "toneRequired": "Veuillez sélectionner un ton",
+      "tonePlaceholder": "Sélectionnez votre ton préféré",
+      "language": "Langue du contenu",
+      "topics": "Sujets que vous couvrez",
+      "topicsPlaceholder": "Tapez les sujets et appuyez sur Entrée (ex: Leadership, IA, Ventes)",
+      "expertise": "Vos domaines d'expertise",
+      "expertisePlaceholder": "Tapez votre expertise et appuyez sur Entrée"
+    },
+    "goals": {
+      "title": "Objectifs de contenu",
+      "question": "Que souhaitez-vous accomplir avec votre contenu LinkedIn ?",
+      "required": "Veuillez sélectionner au moins un objectif"
+    },
+    "actions": {
+      "resetToDefaults": "Réinitialiser par défaut",
+      "saveProfile": "Enregistrer le profil"
+    },
+    "messages": {
+      "saved": "Profil enregistré avec succès !",
+      "saveFailed": "Échec de l'enregistrement du profil. Veuillez réessayer.",
+      "reset": "Profil réinitialisé aux valeurs par défaut."
+    }
+  },
+  "login": {
+    "tagline": "Créez du contenu LinkedIn professionnel en toute simplicité.",
+    "error": {
+      "title": "Erreur de connexion",
+      "description": "Veuillez réessayer."
+    },
+    "continueWithLinkedIn": "Continuer avec LinkedIn",
+    "terms": "En vous connectant, vous acceptez nos conditions d'utilisation."
+  },
+  "industries": {
+    "tech": "Technologie / IT",
+    "finance": "Finance / Banque",
+    "healthcare": "Santé / Médical",
+    "education": "Éducation / Formation",
+    "marketing": "Marketing / Publicité",
+    "consulting": "Conseil",
+    "real_estate": "Immobilier",
+    "retail": "Commerce / E-commerce",
+    "manufacturing": "Industrie",
+    "legal": "Services juridiques",
+    "hr": "Ressources humaines",
+    "media": "Médias / Divertissement",
+    "nonprofit": "Association / ONG",
+    "government": "Gouvernement / Secteur public",
+    "startup": "Startup / Entrepreneuriat",
+    "other": "Autre"
+  },
+  "contentGoals": {
+    "thought_leadership": {
+      "label": "Leadership d'opinion",
+      "description": "Positionnez-vous comme expert dans votre domaine"
+    },
+    "lead_generation": {
+      "label": "Génération de leads",
+      "description": "Attirez des clients ou prospects potentiels"
+    },
+    "brand_awareness": {
+      "label": "Notoriété de marque",
+      "description": "Augmentez la visibilité de vous ou votre entreprise"
+    },
+    "network_growth": {
+      "label": "Croissance du réseau",
+      "description": "Développez vos connexions professionnelles"
+    },
+    "recruitment": {
+      "label": "Recrutement",
+      "description": "Attirez des talents dans votre organisation"
+    },
+    "education": {
+      "label": "Éducation",
+      "description": "Partagez vos connaissances et enseignez à votre audience"
+    },
+    "engagement": {
+      "label": "Engagement",
+      "description": "Construisez une communauté et lancez des conversations"
+    }
+  },
+  "tones": {
+    "professional": {
+      "label": "Professionnel",
+      "description": "Formel et orienté business"
+    },
+    "casual": {
+      "label": "Décontracté",
+      "description": "Amical et accessible"
+    },
+    "inspirational": {
+      "label": "Inspirant",
+      "description": "Motivant et stimulant"
+    },
+    "educational": {
+      "label": "Éducatif",
+      "description": "Informatif et instructif"
+    },
+    "storytelling": {
+      "label": "Storytelling",
+      "description": "Narratif et personnel"
+    },
+    "provocative": {
+      "label": "Provocateur",
+      "description": "Audacieux et stimulant la réflexion"
+    },
+    "humorous": {
+      "label": "Humoristique",
+      "description": "Léger avec de l'esprit"
+    }
+  },
+  "postStatus": {
+    "draft": "Brouillon",
+    "ready": "Prêt",
+    "published": "Publié"
+  },
+  "postTypes": {
+    "text": "Publication texte",
+    "image": "Publication image",
+    "carousel": "Carrousel",
+    "video": "Vidéo",
+    "poll": "Sondage",
+    "article": "Article",
+    "document": "Document"
+  },
+  "postingFrequency": {
+    "daily": "Quotidien",
+    "several_per_week": "Plusieurs fois par semaine",
+    "weekly": "Une fois par semaine",
+    "bi_weekly": "Toutes les deux semaines",
+    "monthly": "Une fois par mois"
+  }
+}

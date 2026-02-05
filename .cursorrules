@@ -1,0 +1,165 @@
+# Cursor AI Guidelines for LinkedIn Prospects Helper
+
+## Language Rules
+
+### Code & Technical Content - ALWAYS in English
+Regardless of the language used in prompts or conversations, the following MUST always be written in English:
+
+1. **Source Code**
+   - Variable names, function names, class names
+   - Comments and inline documentation
+   - Error messages and log messages
+   - Constants and enum values
+
+2. **Documentation**
+   - Code comments (inline and block)
+   - JSDoc / TSDoc annotations
+   - README files (technical sections)
+   - API documentation
+   - Changelog entries
+
+3. **API & Backend**
+   - API endpoint names and paths
+   - Request/response field names
+   - Error codes and messages
+   - Database field names and table names
+
+4. **Testing**
+   - Test descriptions and names
+   - Test file names
+   - Mock data labels
+
+5. **External Tools**
+   - Postman collection names and descriptions
+   - Postman request names and documentation
+   - Environment variable names
+   - Configuration file keys
+
+6. **Git**
+   - Commit messages
+   - Branch names
+   - Pull request titles and descriptions
+   - Issue titles
+
+### User-Facing Content - Can be in French
+The following may be written in French when targeting French-speaking users:
+
+- UI text and labels (if the app is in French)
+- User documentation and guides
+- Marketing content
+- User-facing error messages (in i18n files)
+
+## Code Style Guidelines
+
+### TypeScript/JavaScript
+- Use TypeScript for all new files
+- Prefer `const` over `let`, avoid `var`
+- Use async/await over Promise chains
+- Use meaningful variable names (no single letters except in loops)
+- Export types and interfaces separately
+
+### React/Next.js
+- Use functional components with hooks
+- Prefer named exports over default exports for components
+- Keep components small and focused (single responsibility)
+- Use Ant Design components consistently
+- Follow Next.js App Router conventions
+
+### File Naming
+- Components: PascalCase (e.g., `UserProfile.tsx`)
+- Utilities/hooks: camelCase (e.g., `useAuth.ts`, `formatDate.ts`)
+- Types: PascalCase with `.types.ts` suffix or in `types/` folder
+- Constants: SCREAMING_SNAKE_CASE for values, camelCase for files
+
+### Folder Structure
+```
+├── app/                    # Next.js App Router pages
+├── components/             # Reusable UI components
+│   ├── ui/                 # Base UI components
+│   └── features/           # Feature-specific components
+├── lib/                    # Core utilities and configurations
+├── hooks/                  # Custom React hooks
+├── types/                  # TypeScript type definitions
+├── services/               # API services and external integrations
+└── utils/                  # Helper functions
+```
+
+## API Documentation Standards
+
+### Postman Collections
+- Collection name: `LinkedIn Prospects Helper API`
+- Use folders to organize by feature/resource
+- Include description for each request
+- Add example responses (success and error cases)
+- Use environment variables for base URL and tokens
+
+### Request Documentation Template
+```
+Name: [HTTP Method] Resource Action
+Description: Brief description of what this endpoint does
+Headers: List required headers
+Body: Example request body with comments
+Response: Expected response structure
+```
+
+## Commit Message Convention
+
+Follow Conventional Commits format:
+```
+type(scope): description
+
+[optional body]
+
+[optional footer]
+```
+
+Types:
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, etc.)
+- `refactor`: Code refactoring
+- `test`: Adding or updating tests
+- `chore`: Maintenance tasks
+
+Example:
+```
+feat(auth): add LinkedIn OAuth integration
+
+- Configure NextAuth with LinkedIn provider
+- Add login page with LinkedIn button
+- Implement session management
+```
+
+## Environment Variables
+
+- Use SCREAMING_SNAKE_CASE for names
+- Prefix with feature name when appropriate (e.g., `LINKEDIN_CLIENT_ID`)
+- Never commit secrets to the repository
+- Document all variables in `.env.example`
+
+## Error Handling
+
+- Use descriptive error messages in English
+- Include error codes for programmatic handling
+- Log errors with context (user ID, action, timestamp)
+- Return user-friendly messages (can be translated via i18n)
+
+## Comments Guidelines
+
+```typescript
+// Good: Explains WHY, not WHAT
+// LinkedIn API requires the access token to be refreshed every 60 days
+const TOKEN_REFRESH_INTERVAL = 60 * 24 * 60 * 60 * 1000;
+
+// Bad: States the obvious
+// Set the interval to 60 days
+const TOKEN_REFRESH_INTERVAL = 60 * 24 * 60 * 60 * 1000;
+```
+
+## Remember
+
+- **Prompts in French → Code in English**
+- **User asks in French → Respond in French, but code/docs in English**
+- **Consistency is key** - follow existing patterns in the codebase
+- **When in doubt, check existing files** for style reference
