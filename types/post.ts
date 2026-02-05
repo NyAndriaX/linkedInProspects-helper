@@ -12,6 +12,10 @@ export interface Post {
   content: string;
   status: PostStatus;
   views: number;
+  likes?: number;
+  comments?: number;
+  impressions?: number;
+  linkedInUrn?: string | null;
   userId?: string;
   createdAt: string;
   updatedAt: string;
@@ -36,6 +40,9 @@ export interface PostStats {
   ready: number;
   published: number;
   totalViews: number;
+  totalLikes: number;
+  totalComments: number;
+  totalImpressions: number;
 }
 
 /**

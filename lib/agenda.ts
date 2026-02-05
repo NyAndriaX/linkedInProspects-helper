@@ -84,12 +84,17 @@ export function getAgenda(): Agenda {
           }
         );
 
-        // Update post status
+        // Extract the LinkedIn URN from the response
+        // The URN can be in the X-RestLi-Id header or in the response body as 'id'
+        const linkedInUrn = response.headers["x-restli-id"] || response.data?.id || null;
+
+        // Update post status and save LinkedIn URN
         await prisma.post.update({
           where: { id: post.id },
           data: {
             status: "published",
             publishedAt: new Date(),
+            linkedInUrn: linkedInUrn,
           },
         });
 
@@ -104,6 +109,75 @@ export function getAgenda(): Agenda {
         console.error(`[Agenda] Error publishing post:`, error);
       }
     });
+
+    // Define the fetch stats job - runs daily at 3:00 AM Paris time
+    agendaInstance.define("fetch-linkedin-stats", async (_job: Job) => {
+      console.log("[Agenda] Running fetch-linkedin-stats job");
+
+      try {
+        // Calculate the date one week ago
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+        // Get all published posts with LinkedIn URN from the last 7 days
+        const posts = await prisma.post.findMany({
+          where: {
+            status: "published",
+            linkedInUrn: { not: null },
+            publishedAt: { gte: oneWeekAgo },
+          },
+          include: {
+            user: {
+              include: {
+                accounts: {
+                  where: { provider: "linkedin" },
+                },
+              },
+            },
+          },
+        });
+
+        console.log(`[Agenda] Found ${posts.length} posts to fetch stats for`);
+
+        const { getPostStats } = await import("./linkedin");
+
+        // Process each post
+        for (const post of posts) {
+          const account = post.user.accounts[0];
+          
+          if (!account?.access_token || !post.linkedInUrn) {
+            console.log(`[Agenda] Skipping post ${post.id} - no access token or URN`);
+            continue;
+          }
+
+          try {
+            const stats = await getPostStats(account.access_token, post.linkedInUrn);
+
+            // Update post with new stats
+            await prisma.post.update({
+              where: { id: post.id },
+              data: {
+                likes: stats.likes,
+                comments: stats.comments,
+              },
+            });
+
+            console.log(
+              `[Agenda] Updated stats for post ${post.id}: ${stats.likes} likes, ${stats.comments} comments`
+            );
+          } catch (error) {
+            console.error(`[Agenda] Error fetching stats for post ${post.id}:`, error);
+          }
+
+          // Small delay between requests to avoid rate limiting
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+
+        console.log("[Agenda] Finished fetching LinkedIn stats");
+      } catch (error) {
+        console.error("[Agenda] Error in fetch-linkedin-stats job:", error);
+      }
+    });
   }
 
   return agendaInstance;
@@ -115,7 +189,20 @@ export function getAgenda(): Agenda {
 export async function startAgenda(): Promise<void> {
   const agenda = getAgenda();
   await agenda.start();
+  
+  // Cancel any existing fetch-linkedin-stats jobs to avoid duplicates on restart
+  await agenda.cancel({ name: "fetch-linkedin-stats" });
+  
+  // Schedule the daily stats fetch job at 3:00 AM Paris time
+  await agenda.every(
+    "0 3 * * *",
+    "fetch-linkedin-stats",
+    {},
+    { timezone: "Europe/Paris" }
+  );
+  
   console.log("[Agenda] Scheduler started");
+  console.log("[Agenda] LinkedIn stats job scheduled for 3:00 AM Europe/Paris");
 }
 
 /**

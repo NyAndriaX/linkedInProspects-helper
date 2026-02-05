@@ -9,10 +9,11 @@ const httpsAgent = new https.Agent({
 });
 
 const LINKEDIN_API_BASE = "https://api.linkedin.com/v2";
+const LINKEDIN_REST_API_BASE = "https://api.linkedin.com/rest";
 const REQUEST_TIMEOUT = 30000; // 30 seconds
 
 /**
- * LinkedIn API client for publishing posts
+ * LinkedIn API client for publishing posts (v2 API)
  */
 export const linkedInClient = axios.create({
   baseURL: LINKEDIN_API_BASE,
@@ -21,6 +22,19 @@ export const linkedInClient = axios.create({
   headers: {
     "Content-Type": "application/json",
     "X-Restli-Protocol-Version": "2.0.0",
+  },
+});
+
+/**
+ * LinkedIn REST API client for social actions (likes, comments)
+ */
+export const linkedInRestClient = axios.create({
+  baseURL: LINKEDIN_REST_API_BASE,
+  timeout: REQUEST_TIMEOUT,
+  httpsAgent,
+  headers: {
+    "Content-Type": "application/json",
+    "LinkedIn-Version": "202401",
   },
 });
 
@@ -98,4 +112,96 @@ export function handleLinkedInError(error: unknown): { message: string; status: 
   }
 
   return { message: ERROR_MESSAGES.UNKNOWN, status: 500 };
+}
+
+/**
+ * Response type for social actions (likes/comments)
+ */
+interface SocialActionsResponse {
+  paging?: {
+    count: number;
+    start: number;
+    total?: number;
+  };
+  elements?: unknown[];
+}
+
+/**
+ * Get the number of likes for a LinkedIn post
+ * @param accessToken - LinkedIn access token
+ * @param shareUrn - The URN of the share (e.g., "urn:li:share:123456789")
+ * @returns The number of likes or 0 if error
+ */
+export async function getPostLikes(accessToken: string, shareUrn: string): Promise<number> {
+  try {
+    // URL encode the URN for the API call
+    const encodedUrn = encodeURIComponent(shareUrn);
+    
+    const response = await linkedInRestClient.get<SocialActionsResponse>(
+      `/socialActions/${encodedUrn}/likes`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        params: {
+          count: 0, // We only need the total count, not the actual likes
+        },
+      }
+    );
+
+    // The total is in paging.total or we count elements
+    return response.data.paging?.total ?? response.data.elements?.length ?? 0;
+  } catch (error) {
+    console.error(`[LinkedIn] Error fetching likes for ${shareUrn}:`, error);
+    return 0;
+  }
+}
+
+/**
+ * Get the number of comments for a LinkedIn post
+ * @param accessToken - LinkedIn access token
+ * @param shareUrn - The URN of the share (e.g., "urn:li:share:123456789")
+ * @returns The number of comments or 0 if error
+ */
+export async function getPostComments(accessToken: string, shareUrn: string): Promise<number> {
+  try {
+    // URL encode the URN for the API call
+    const encodedUrn = encodeURIComponent(shareUrn);
+    
+    const response = await linkedInRestClient.get<SocialActionsResponse>(
+      `/socialActions/${encodedUrn}/comments`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        params: {
+          count: 0, // We only need the total count, not the actual comments
+        },
+      }
+    );
+
+    // The total is in paging.total or we count elements
+    return response.data.paging?.total ?? response.data.elements?.length ?? 0;
+  } catch (error) {
+    console.error(`[LinkedIn] Error fetching comments for ${shareUrn}:`, error);
+    return 0;
+  }
+}
+
+/**
+ * Get both likes and comments count for a LinkedIn post
+ * @param accessToken - LinkedIn access token
+ * @param shareUrn - The URN of the share
+ * @returns Object with likes and comments counts
+ */
+export async function getPostStats(
+  accessToken: string,
+  shareUrn: string
+): Promise<{ likes: number; comments: number }> {
+  const [likes, comments] = await Promise.all([
+    getPostLikes(accessToken, shareUrn),
+    getPostComments(accessToken, shareUrn),
+  ]);
+
+  return { likes, comments };
 }

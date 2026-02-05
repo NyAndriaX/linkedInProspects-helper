@@ -85,6 +85,12 @@ model Post {
   content   String
   status    String   @default("draft") // draft, ready, published
   views     Int      @default(0)
+  
+  // LinkedIn engagement stats
+  likes       Int      @default(0)
+  comments    Int      @default(0)
+  impressions Int      @default(0)
+  linkedInUrn String?  // URN of the LinkedIn post for API calls
 
   userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
