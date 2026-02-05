@@ -8,7 +8,6 @@ import {
   FileTextOutlined,
   EditOutlined,
   CheckCircleOutlined,
-  EyeOutlined,
   ClockCircleOutlined,
   ArrowRightOutlined,
 } from "@ant-design/icons";
@@ -128,24 +127,6 @@ export default function Home() {
             </Col>
           ))}
         </Row>
-
-        {/* Views Card */}
-        <Card size={isMobile ? "small" : "default"} styles={{ body: { padding: isMobile ? 12 : 24 } }}>
-          <div className={`flex items-center ${isMobile ? "gap-3" : "gap-4"}`}>
-            <div className={`flex items-center justify-center ${isMobile ? "w-10 h-10" : "w-14 h-14"} rounded-xl bg-purple-50`}>
-              <EyeOutlined className={`${isMobile ? "text-lg" : "text-2xl"} text-purple-600`} />
-            </div>
-            <div>
-              <Text type="secondary" className={isMobile ? "text-xs" : "text-sm"}>
-                {t("stats.totalViews")}
-              </Text>
-              <div className={`${isMobile ? "text-xl" : "text-3xl"} font-semibold`}>
-                {stats.totalViews.toLocaleString()}
-              </div>
-            </div>
-          </div>
-        </Card>
-
       </div>
     </MainLayout>
   );

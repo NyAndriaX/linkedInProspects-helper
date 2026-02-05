@@ -13,7 +13,7 @@
     "loading": "Chargement...",
     "error": "Erreur",
     "success": "Succès",
-    "views": "vues",
+    "views": "impressions",
     "update": "Mettre à jour"
   },
   "navigation": {
@@ -35,7 +35,7 @@
       "drafts": "Brouillons",
       "ready": "Prêts",
       "published": "Publiés",
-      "totalViews": "Vues totales"
+      "totalViews": "Impressions totales"
     }
   },
   "posts": {
@@ -56,7 +56,7 @@
       "title": "Titre",
       "content": "Contenu",
       "status": "Statut",
-      "views": "Vues",
+      "views": "Impressions",
       "created": "Créé le",
       "actions": "Actions"
     },

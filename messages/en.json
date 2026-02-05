@@ -13,7 +13,7 @@
     "loading": "Loading...",
     "error": "Error",
     "success": "Success",
-    "views": "views",
+    "views": "impressions",
     "update": "Update"
   },
   "navigation": {
@@ -35,7 +35,7 @@
       "drafts": "Drafts",
       "ready": "Ready",
       "published": "Published",
-      "totalViews": "Total Views"
+      "totalViews": "Total Impressions"
     }
   },
   "posts": {
@@ -56,7 +56,7 @@
       "title": "Title",
       "content": "Content",
       "status": "Status",
-      "views": "Views",
+      "views": "Impressions",
       "created": "Created",
       "actions": "Actions"
     },

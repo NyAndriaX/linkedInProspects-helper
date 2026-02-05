@@ -134,8 +134,11 @@ export function usePosts() {
     const ready = posts.filter((p) => p.status === "ready").length;
     const published = posts.filter((p) => p.status === "published").length;
     const totalViews = posts.reduce((sum, p) => sum + p.views, 0);
+    const totalLikes = posts.reduce((sum, p) => sum + (p.likes || 0), 0);
+    const totalComments = posts.reduce((sum, p) => sum + (p.comments || 0), 0);
+    const totalImpressions = posts.reduce((sum, p) => sum + (p.impressions || 0), 0);
 
-    return { total: posts.length, draft, ready, published, totalViews };
+    return { total: posts.length, draft, ready, published, totalViews, totalLikes, totalComments, totalImpressions };
   }, [posts]);
 
   return {
