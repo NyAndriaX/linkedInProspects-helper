@@ -15,6 +15,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { useProfile } from "@/hooks/useProfile";
 import { usePosts } from "@/hooks/usePosts";
 import { Link } from "@/i18n/routing";
+import { ReactionsChart } from "@/components/charts";
 
 const { Title, Text } = Typography;
 
@@ -22,7 +23,7 @@ export default function Home() {
   const t = useTranslations("home");
   const { data: session } = useSession();
   const { isProfileComplete } = useProfile();
-  const { stats } = usePosts();
+  const { posts, stats } = usePosts();
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -127,6 +128,9 @@ export default function Home() {
             </Col>
           ))}
         </Row>
+
+        {/* Reactions Chart */}
+        <ReactionsChart posts={posts} isMobile={isMobile} />
       </div>
     </MainLayout>
   );

@@ -50,6 +50,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    console.log(`[LinkedIn Publish] Starting publication for postId: ${postId}`);
+    console.log(`[LinkedIn Publish] LinkedIn ID: ${session.linkedInId}`);
+
     // Publish to LinkedIn
     const response = await linkedInClient.post(
       "/ugcPosts",
@@ -61,8 +64,32 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    // Extract post ID from response headers
-    const linkedInPostId = response.headers["x-restli-id"] || null;
+    // Log all response headers to debug URN extraction
+    console.log(`[LinkedIn Publish] Response status: ${response.status}`);
+    console.log(`[LinkedIn Publish] Response headers:`, JSON.stringify(response.headers, null, 2));
+    console.log(`[LinkedIn Publish] Response data:`, JSON.stringify(response.data, null, 2));
+
+    // Extract post URN from response headers
+    // The URN format is: urn:li:ugcPost:123456789 or urn:li:share:123456789
+    const linkedInPostId = response.headers["x-restli-id"] || response.data?.id || null;
+    
+    console.log(`[LinkedIn Publish] Extracted URN: ${linkedInPostId}`);
+
+    // Update the post with the LinkedIn URN, status, and publishedAt
+    if (postId && linkedInPostId) {
+      console.log(`[LinkedIn Publish] Updating post ${postId} with URN: ${linkedInPostId}`);
+      await prisma.post.update({
+        where: { id: postId },
+        data: {
+          linkedInUrn: linkedInPostId,
+          status: "published",
+          publishedAt: new Date(),
+        },
+      });
+      console.log(`[LinkedIn Publish] Successfully saved URN to post ${postId}`);
+    } else {
+      console.warn(`[LinkedIn Publish] WARNING: Could not save URN. postId=${postId}, linkedInPostId=${linkedInPostId}`);
+    }
 
     return NextResponse.json({
       success: true,

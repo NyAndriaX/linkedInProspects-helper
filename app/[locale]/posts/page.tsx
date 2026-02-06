@@ -27,6 +27,7 @@ import {
   LoadingOutlined,
   ThunderboltOutlined,
   WarningOutlined,
+  LikeOutlined,
 } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
 import type { ColumnsType } from "antd/es/table";
@@ -209,12 +210,17 @@ export default function PostsPage() {
     ...(!isMobile
       ? [
           {
-            title: t("table.views"),
-            dataIndex: "views",
-            key: "views",
-            width: 80,
-            align: "center" as const,
-            render: (views: number) => <Text type="secondary">{views}</Text>,
+            title: t("table.reactions"),
+            key: "reactions",
+            width: 100,
+            render: (_: unknown, record: Post) => (
+              <Tooltip title={t("table.reactions")}>
+                <span className="flex items-center gap-1 text-green-500">
+                  <LikeOutlined />
+                  <span>{record.reactions || 0}</span>
+                </span>
+              </Tooltip>
+            ),
           },
           {
             title: t("table.created"),
@@ -471,13 +477,18 @@ export default function PostsPage() {
         {viewingPost && (
           <div className="space-y-4">
             {/* Header */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <Tag color={postStatusConfig[viewingPost.status].color}>
                 {tStatus(viewingPost.status)}
               </Tag>
-              <Text type="secondary" className="text-sm">
-                {viewingPost.views} {tCommon("views")}
-              </Text>
+              {viewingPost.status === "published" && (
+                <Tooltip title={t("table.reactions")}>
+                  <span className="flex items-center gap-1 text-green-500 text-sm">
+                    <LikeOutlined />
+                    <span>{viewingPost.reactions || 0}</span>
+                  </span>
+                </Tooltip>
+              )}
             </div>
 
             {/* Title */}

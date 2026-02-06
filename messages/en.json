@@ -36,6 +36,12 @@
       "ready": "Ready",
       "published": "Published",
       "totalViews": "Total Impressions"
+    },
+    "chart": {
+      "title": "Reactions Over Time",
+      "reactions": "Reactions",
+      "noData": "No data available",
+      "noDataDesc": "Publish posts to see your statistics"
     }
   },
   "posts": {
@@ -56,7 +62,7 @@
       "title": "Title",
       "content": "Content",
       "status": "Status",
-      "views": "Impressions",
+      "reactions": "Reactions",
       "created": "Created",
       "actions": "Actions"
     },

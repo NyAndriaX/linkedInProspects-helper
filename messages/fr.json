@@ -36,6 +36,12 @@
       "ready": "Prêts",
       "published": "Publiés",
       "totalViews": "Impressions totales"
+    },
+    "chart": {
+      "title": "Évolution des réactions",
+      "reactions": "Réactions",
+      "noData": "Aucune donnée disponible",
+      "noDataDesc": "Publiez des posts pour voir vos statistiques"
     }
   },
   "posts": {
@@ -56,7 +62,7 @@
       "title": "Titre",
       "content": "Contenu",
       "status": "Statut",
-      "views": "Impressions",
+      "reactions": "Réactions",
       "created": "Créé le",
       "actions": "Actions"
     },

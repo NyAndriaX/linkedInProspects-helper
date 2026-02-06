@@ -11,6 +11,7 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
       // OpenID Connect configuration (required by LinkedIn)
       // w_member_social is required for posting to LinkedIn
+      // r_member_postAnalytics is required for post analytics (requires "Advertising API" product)
       authorization: {
         params: {
           scope: "openid profile email w_member_social",

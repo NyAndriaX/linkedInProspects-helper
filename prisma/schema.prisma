@@ -87,9 +87,7 @@ model Post {
   views     Int      @default(0)
   
   // LinkedIn engagement stats
-  likes       Int      @default(0)
-  comments    Int      @default(0)
-  impressions Int      @default(0)
+  reactions   Int      @default(0)
   linkedInUrn String?  // URN of the LinkedIn post for API calls
 
   userId    String   @db.ObjectId

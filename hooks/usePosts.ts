@@ -96,11 +96,8 @@ export function usePosts() {
           postId: id,
         });
 
-        // Update post status in database
-        await updatePost(id, {
-          status: "published",
-          publishedAt: new Date().toISOString(),
-        });
+        // Refetch posts to get updated status and linkedInUrn from server
+        await fetchPosts();
 
         return { success: true, linkedInPostId: data.linkedInPostId };
       } catch (error) {
@@ -110,7 +107,7 @@ export function usePosts() {
         setIsPublishing(false);
       }
     },
-    [posts, updatePost]
+    [posts, fetchPosts]
   );
 
   // Get post by ID
@@ -134,11 +131,9 @@ export function usePosts() {
     const ready = posts.filter((p) => p.status === "ready").length;
     const published = posts.filter((p) => p.status === "published").length;
     const totalViews = posts.reduce((sum, p) => sum + p.views, 0);
-    const totalLikes = posts.reduce((sum, p) => sum + (p.likes || 0), 0);
-    const totalComments = posts.reduce((sum, p) => sum + (p.comments || 0), 0);
-    const totalImpressions = posts.reduce((sum, p) => sum + (p.impressions || 0), 0);
+    const totalReactions = posts.reduce((sum, p) => sum + (p.reactions || 0), 0);
 
-    return { total: posts.length, draft, ready, published, totalViews, totalLikes, totalComments, totalImpressions };
+    return { total: posts.length, draft, ready, published, totalViews, totalReactions };
   }, [posts]);
 
   return {
