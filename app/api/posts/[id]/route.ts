@@ -44,7 +44,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     if (!existingPost) return ApiResponse.notFound("Post not found");
 
-    const { title, content, status, views, publishedAt } = await request.json();
+    const { title, content, status, imageUrl, publishedAt } = await request.json();
 
     const post = await prisma.post.update({
       where: { id },
@@ -52,7 +52,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         ...(title !== undefined && { title }),
         ...(content !== undefined && { content }),
         ...(status !== undefined && { status }),
-        ...(views !== undefined && { views }),
+        ...(imageUrl !== undefined && { imageUrl }),
         ...(publishedAt !== undefined && { publishedAt: new Date(publishedAt) }),
       },
     });

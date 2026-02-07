@@ -11,8 +11,7 @@ export interface Post {
   title: string;
   content: string;
   status: PostStatus;
-  views: number;
-  reactions?: number;
+  imageUrl?: string | null;
   linkedInUrn?: string | null;
   userId?: string;
   createdAt: string;
@@ -37,8 +36,6 @@ export interface PostStats {
   draft: number;
   ready: number;
   published: number;
-  totalViews: number;
-  totalReactions: number;
 }
 
 /**
@@ -80,7 +77,6 @@ export function createPost(
     title,
     content,
     status,
-    views: 0,
     createdAt: now,
     updatedAt: now,
     publishedAt: status === "published" ? now : null,

@@ -130,10 +130,8 @@ export function usePosts() {
     const draft = posts.filter((p) => p.status === "draft").length;
     const ready = posts.filter((p) => p.status === "ready").length;
     const published = posts.filter((p) => p.status === "published").length;
-    const totalViews = posts.reduce((sum, p) => sum + p.views, 0);
-    const totalReactions = posts.reduce((sum, p) => sum + (p.reactions || 0), 0);
 
-    return { total: posts.length, draft, ready, published, totalViews, totalReactions };
+    return { total: posts.length, draft, ready, published };
   }, [posts]);
 
   return {

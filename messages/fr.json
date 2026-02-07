@@ -13,13 +13,15 @@
     "loading": "Chargement...",
     "error": "Erreur",
     "success": "Succès",
-    "views": "impressions",
     "update": "Mettre à jour"
   },
   "navigation": {
     "dashboard": "Tableau de bord",
     "posts": "Publications",
     "schedule": "Planification",
+    "outreach": "Outreach",
+    "crm": "CRM",
+    "ideas": "Idées",
     "settings": "Paramètres",
     "signOut": "Déconnexion"
   },
@@ -34,14 +36,7 @@
       "total": "Total",
       "drafts": "Brouillons",
       "ready": "Prêts",
-      "published": "Publiés",
-      "totalViews": "Impressions totales"
-    },
-    "chart": {
-      "title": "Évolution des réactions",
-      "reactions": "Réactions",
-      "noData": "Aucune donnée disponible",
-      "noDataDesc": "Publiez des posts pour voir vos statistiques"
+      "published": "Publiés"
     }
   },
   "posts": {
@@ -62,7 +57,6 @@
       "title": "Titre",
       "content": "Contenu",
       "status": "Statut",
-      "reactions": "Réactions",
       "created": "Créé le",
       "actions": "Actions"
     },
@@ -92,10 +86,44 @@
     },
     "generate": {
       "title": "Générer des publications avec l'IA",
-      "howMany": "Combien de publications souhaitez-vous générer ?",
+      "step1Title": "Configuration",
+      "step2Title": "Aperçu & édition",
+      "topicLabel": "Sujet / Thème",
+      "topicPlaceholder": "De quoi parler ? (ex: l'importance du personal branding, 5 erreurs de freelance...)",
+      "topicHelp": "Optionnel. Si vide, l'IA choisira un sujet basé sur votre profil.",
+      "toneLabel": "Ton",
+      "styleLabel": "Style de publication",
+      "stylePlaceholder": "Laisser l'IA décider",
+      "styles": {
+        "auto": "Automatique (l'IA décide)",
+        "tips_list": "Liste de conseils",
+        "personal_story": "Histoire personnelle",
+        "contrarian": "Opinion à contre-courant",
+        "how_to": "Guide pratique",
+        "question_driven": "Question engageante",
+        "case_study": "Étude de cas",
+        "myth_busting": "Démystification"
+      },
+      "howMany": "Nombre de publications",
       "placeholder": "Nombre de publications",
       "button": "Générer {count} publication",
-      "buttonPlural": "Générer {count} publications"
+      "buttonPlural": "Générer {count} publications",
+      "includeImage": "Inclure une image d'illustration",
+      "includeImageHelp": "Recherche une image via Unsplash basée sur le thème.",
+      "generating": "L'IA génère vos publications...",
+      "generatingTip": "Cela peut prendre quelques secondes selon le nombre demandé.",
+      "preview": {
+        "subtitle": "{count} publication(s) générée(s). Modifiez et sélectionnez celles à conserver.",
+        "selectAll": "Tout sélectionner",
+        "deselectAll": "Tout désélectionner",
+        "saveSelectedCount": "Enregistrer {count} publication(s)",
+        "regenerate": "Régénérer",
+        "noSelection": "Sélectionnez au moins une publication à enregistrer",
+        "saved": "{count} publication(s) enregistrée(s) avec succès !",
+        "schedule": "Planifier",
+        "scheduledSuccess": "Post sauvegardé ! Configurez votre planification pour le publier.",
+        "scheduledTag": "Planifié ✓"
+      }
     },
     "messages": {
       "updated": "Publication mise à jour",
@@ -172,6 +200,295 @@
       "deleteFailed": "Échec de la suppression de la planification",
       "createFailed": "Échec de la création de la planification",
       "updateFailed": "Échec de la mise à jour de la planification"
+    }
+  },
+  "outreach": {
+    "title": "Messages Outreach",
+    "subtitle": "Générez des messages LinkedIn personnalisés pour vos prospects",
+    "formTitle": "Composer un message",
+    "previewTitle": "Aperçu du message",
+    "form": {
+      "sectionProspect": "Informations du prospect",
+      "sectionConfig": "Configuration du message",
+      "sectionExpertise": "Votre profil",
+      "prospectName": "Nom du prospect",
+      "prospectNamePlaceholder": "ex : Jean Dupont",
+      "prospectNameRequired": "Le nom du prospect est requis",
+      "prospectDetails": "Détails du prospect",
+      "prospectDetailsPlaceholder": "Copiez-collez les infos du profil LinkedIn : poste, entreprise, publications récentes, centres d'intérêt…",
+      "prospectDetailsRequired": "Les détails du prospect sont requis",
+      "messageType": "Type de message",
+      "types": {
+        "connection": "Demande de connexion",
+        "inmail": "InMail / Message",
+        "followup": "Message de suivi"
+      },
+      "myExpertise": "Mon expertise",
+      "myExpertisePlaceholder": "ex : Freelance Next.js & React à Antananarivo",
+      "myExpertiseHelp": "Pré-rempli depuis votre profil. Modifiez si besoin.",
+      "tone": "Ton du message",
+      "tones": {
+        "pro": "Professionnel",
+        "friendly": "Amical",
+        "direct": "Direct"
+      },
+      "generate": "Générer le message",
+      "generating": "Génération en cours…"
+    },
+    "result": {
+      "subject": "Sujet",
+      "copy": "Copier",
+      "copied": "Copié dans le presse-papiers !",
+      "regenerate": "Régénérer",
+      "followup": "Générer un follow-up",
+      "addToCrm": "Ajouter au CRM",
+      "crmSoon": "Fonctionnalité CRM bientôt disponible",
+      "you": "Vous",
+      "connectionBadge": "Demande de connexion",
+      "inmailBadge": "InMail",
+      "followupBadge": "Suivi",
+      "charCount": "{count} / {max} caractères"
+    },
+    "empty": {
+      "title": "Aucun message généré",
+      "description": "Remplissez le formulaire et cliquez sur « Générer » pour créer un message personnalisé"
+    },
+    "errors": {
+      "generateFailed": "Échec de la génération du message",
+      "rateLimited": "Trop de requêtes. Réessayez dans quelques secondes."
+    },
+    "tabs": {
+      "message": "Messages Outreach",
+      "emailFinder": "Email Finder"
+    },
+    "emailFinder": {
+      "title": "Trouver l'email d'un prospect",
+      "form": {
+        "name": "Nom complet",
+        "namePlaceholder": "ex : Jean Dupont",
+        "nameRequired": "Le nom est requis",
+        "company": "Entreprise",
+        "companyPlaceholder": "ex : StartupTech MG",
+        "companyRequired": "L'entreprise est requise",
+        "domain": "Domaine (optionnel)",
+        "domainPlaceholder": "ex : startuptech.com",
+        "domainHelp": "Si vide, le domaine sera deviné depuis le nom de l'entreprise",
+        "linkedinUrl": "URL LinkedIn (optionnel)",
+        "linkedinUrlPlaceholder": "ex : https://linkedin.com/in/jean-dupont",
+        "search": "Trouver l'email",
+        "searching": "Recherche en cours…"
+      },
+      "result": {
+        "found": "Email trouvé",
+        "notFound": "Aucun email trouvé",
+        "confidence": "Confiance",
+        "status": "Statut",
+        "position": "Poste",
+        "company": "Entreprise",
+        "domain": "Domaine",
+        "deliverable": "Deliverable",
+        "risky": "Risqué",
+        "undeliverable": "Non deliverable",
+        "unknown": "Inconnu",
+        "copy": "Copier l'email",
+        "copied": "Email copié !",
+        "useForOutreach": "Utiliser pour outreach",
+        "remaining": "Crédits restants",
+        "remainingCount": "{remaining} / {limit} ce mois",
+        "limitReached": "Limite mensuelle atteinte",
+        "limitReachedDesc": "Vous avez utilisé vos {limit} recherches gratuites ce mois-ci. Réessayez le mois prochain !",
+        "contactForMore": "Demander plus de crédits",
+        "notFoundDesc": "Aucun email professionnel trouvé pour ce prospect. Essayez avec un domaine différent.",
+        "apiNotConfigured": "Service Hunter.io non configuré. Ajoutez HUNTER_API_KEY dans .env"
+      },
+      "empty": {
+        "title": "Trouvez l'email de vos prospects",
+        "description": "Entrez le nom et l'entreprise d'un prospect pour trouver son email professionnel"
+      }
+    }
+  },
+  "crm": {
+    "title": "CRM Prospects",
+    "subtitle": "Gérez votre pipeline de prospection et ne perdez plus aucun follow-up",
+    "stats": {
+      "total": "Total prospects",
+      "new": "Nouveaux",
+      "contacted": "Contactés",
+      "replied": "Répondu",
+      "interested": "Intéressés",
+      "converted": "Convertis",
+      "lost": "Perdus",
+      "followUpWeek": "Follow-ups cette semaine",
+      "overdue": "En retard"
+    },
+    "status": {
+      "new": "Nouveau",
+      "contacted": "Contacté",
+      "replied": "Répondu",
+      "interested": "Intéressé",
+      "converted": "Converti",
+      "lost": "Perdu",
+      "all": "Tous les statuts"
+    },
+    "table": {
+      "name": "Nom",
+      "email": "Email",
+      "company": "Entreprise",
+      "linkedin": "LinkedIn",
+      "status": "Statut",
+      "notes": "Notes",
+      "followUp": "Follow-up",
+      "lastContact": "Dernier contact",
+      "actions": "Actions",
+      "today": "Aujourd'hui !",
+      "overdue": "En retard",
+      "noProspects": "Aucun prospect pour le moment",
+      "noProspectsDesc": "Ajoutez votre premier prospect ou importez-en depuis la page Outreach",
+      "searchPlaceholder": "Rechercher par nom, email, entreprise…"
+    },
+    "modal": {
+      "addTitle": "Ajouter un prospect",
+      "editTitle": "Modifier le prospect",
+      "name": "Nom complet",
+      "namePlaceholder": "ex : Jean Dupont",
+      "nameRequired": "Le nom est requis",
+      "email": "Email",
+      "emailPlaceholder": "ex : jean@entreprise.com",
+      "company": "Entreprise",
+      "companyPlaceholder": "ex : StartupTech MG",
+      "linkedin": "URL LinkedIn",
+      "linkedinPlaceholder": "ex : https://linkedin.com/in/jean-dupont",
+      "status": "Statut",
+      "notes": "Notes",
+      "notesPlaceholder": "Détails, pitch envoyé, réponse du prospect, prochaines étapes…",
+      "lastContact": "Dernier contact",
+      "followUp": "Date de follow-up",
+      "followUpHelp": "Vous recevrez un rappel lorsque la date approche"
+    },
+    "messages": {
+      "created": "Prospect ajouté avec succès",
+      "updated": "Prospect mis à jour",
+      "deleted": "Prospect supprimé",
+      "createFailed": "Échec de l'ajout du prospect",
+      "updateFailed": "Échec de la mise à jour",
+      "deleteFailed": "Échec de la suppression",
+      "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce prospect ?"
+    },
+    "actions": {
+      "add": "Ajouter un prospect",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "enrich": "Enrichir",
+      "enriching": "Enrichissement…"
+    },
+    "enrich": {
+      "success": "Prospect enrichi avec succès !",
+      "failed": "Échec de l'enrichissement",
+      "noData": "Aucune info trouvée pour ce domaine",
+      "noDomain": "Ajoutez un email ou une entreprise pour enrichir ce prospect",
+      "limitReached": "Limite mensuelle atteinte",
+      "companySize": "Taille",
+      "industry": "Secteur",
+      "website": "Site web",
+      "enriched": "Enrichi",
+      "employees": "employés"
+    },
+    "sequence": {
+      "title": "Séquences Follow-Up",
+      "subtitle": "Gérez vos séquences de relance pour ce prospect",
+      "create": "Nouvelle séquence",
+      "createCustom": "Séquence personnalisée",
+      "applyTemplate": "Appliquer un modèle",
+      "noSequences": "Aucune séquence pour ce prospect",
+      "noSequencesDesc": "Créez une séquence de follow-up pour organiser vos relances",
+      "deleteConfirm": "Supprimer cette séquence et toutes ses étapes ?",
+      "deleted": "Séquence supprimée",
+      "deleteFailed": "Échec de la suppression",
+      "created": "Séquence créée avec succès !",
+      "createFailed": "Échec de la création",
+      "stepUpdated": "Étape mise à jour",
+      "stepUpdateFailed": "Échec de la mise à jour",
+      "name": "Nom de la séquence",
+      "namePlaceholder": "ex : Séquence Freelance 3 touches",
+      "nameRequired": "Le nom est requis",
+      "step": "Étape {order}",
+      "addStep": "Ajouter une étape",
+      "removeStep": "Retirer",
+      "relativeDays": "Jour",
+      "relativeDaysHelp": "Jours après le premier contact",
+      "actionType": "Type d'action",
+      "contentLabel": "Message / Contenu",
+      "contentPlaceholder": "Rédigez le message ou laissez vide pour générer plus tard…",
+      "generateContent": "Générer le contenu",
+      "actionTypes": {
+        "connection": "Demande de connexion",
+        "message": "Message LinkedIn",
+        "email": "Email",
+        "call": "Appel",
+        "note": "Note interne"
+      },
+      "stepStatus": {
+        "pending": "En attente",
+        "sent": "Envoyé",
+        "responded": "Répondu",
+        "skipped": "Ignoré"
+      },
+      "markSent": "Marquer envoyé",
+      "markResponded": "Répondu !",
+      "markSkipped": "Ignorer",
+      "dueToday": "Aujourd'hui",
+      "overdue": "En retard",
+      "dueSoon": "Bientôt",
+      "sentOn": "Envoyé le",
+      "templates": {
+        "standard": "Séquence Standard (3 touches)",
+        "standardDesc": "Connection → Message J+3 → Follow-up J+7",
+        "aggressive": "Séquence Intensive (5 touches)",
+        "aggressiveDesc": "Connection → Message → Email → Follow-up → Dernier message",
+        "soft": "Séquence Douce (2 touches)",
+        "softDesc": "Message → Follow-up J+10"
+      }
+    },
+    "reminders": {
+      "title": "Rappels du jour",
+      "subtitle": "Actions de follow-up dues aujourd'hui et bientôt",
+      "overdue": "En retard",
+      "today": "Aujourd'hui",
+      "upcoming": "Prochains jours",
+      "noReminders": "Aucun rappel pour le moment",
+      "noRemindersDesc": "Créez des séquences de follow-up pour voir vos rappels ici",
+      "viewSequence": "Voir la séquence",
+      "dueOn": "Prévu le"
+    }
+  },
+  "ideas": {
+    "title": "Idées de Posts",
+    "subtitle": "Des idées fraîches et tendances pour vos publications LinkedIn cette semaine",
+    "generate": "Générer des idées fraîches",
+    "generating": "Génération d'idées en cours…",
+    "generatingTip": "L'IA analyse les tendances actuelles pour vous proposer des idées pertinentes",
+    "lastGenerated": "Dernière génération",
+    "refreshTip": "Cliquez pour obtenir de nouvelles idées",
+    "generatePost": "Générer ce post",
+    "addToSchedule": "Planifier",
+    "postTypes": {
+      "text": "Texte",
+      "carousel": "Carousel",
+      "question": "Question",
+      "story": "Story perso",
+      "tips": "Tips / Liste",
+      "hot_take": "Opinion tranchée",
+      "case_study": "Étude de cas"
+    },
+    "empty": {
+      "title": "Pas encore d'idées",
+      "description": "Cliquez sur « Générer des idées fraîches » pour obtenir des suggestions de posts adaptées à votre profil"
+    },
+    "errors": {
+      "failed": "Échec de la génération d'idées",
+      "rateLimited": "Trop de requêtes. Réessayez dans quelques secondes."
     }
   },
   "settings": {

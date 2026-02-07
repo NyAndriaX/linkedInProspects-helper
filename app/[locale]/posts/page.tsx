@@ -9,7 +9,6 @@ import {
   Modal,
   Form,
   Input,
-  InputNumber,
   Select,
   message,
   Popconfirm,
@@ -17,6 +16,7 @@ import {
   Table,
   Space,
   Tooltip,
+  Avatar,
 } from "antd";
 import {
   PlusOutlined,
@@ -27,13 +27,16 @@ import {
   LoadingOutlined,
   ThunderboltOutlined,
   WarningOutlined,
-  LikeOutlined,
+  UserOutlined,
+  GlobalOutlined,
 } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
+import { useSession } from "next-auth/react";
 import type { ColumnsType } from "antd/es/table";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { usePosts } from "@/hooks/usePosts";
 import { useProfile } from "@/hooks/useProfile";
+import { GeneratePostsModal } from "@/components/features/GeneratePostsModal";
 import { Post, PostStatus, PostFormData, postStatusConfig } from "@/types/post";
 import { Link } from "@/i18n/routing";
 
@@ -44,10 +47,11 @@ export default function PostsPage() {
   const t = useTranslations("posts");
   const tCommon = useTranslations("common");
   const tStatus = useTranslations("postStatus");
+  const { data: session } = useSession();
   
   const { isLoading, isPublishing, addPost, updatePost, deletePost, publishPost, filterByStatus, refetch } =
     usePosts();
-  const { isProfileComplete } = useProfile();
+  const { isProfileComplete, profile } = useProfile();
   const [messageApi, contextHolder] = message.useMessage();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -55,8 +59,6 @@ export default function PostsPage() {
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [viewingPost, setViewingPost] = useState<Post | null>(null);
   const [statusFilter, setStatusFilter] = useState<PostStatus | "all">("all");
-  const [postCount, setPostCount] = useState<number>(1);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [form] = Form.useForm();
   const [isMobile, setIsMobile] = useState(false);
   const [publishingId, setPublishingId] = useState<string | null>(null);
@@ -123,37 +125,6 @@ export default function PostsPage() {
     }
   };
 
-  const handleOpenGenerateModal = () => {
-    setPostCount(1);
-    setIsGenerateModalOpen(true);
-  };
-
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    try {
-      const response = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ count: postCount }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || t("messages.generateFailed"));
-      }
-
-      messageApi.success(t("messages.generateSuccess", { count: data.count }));
-      setIsGenerateModalOpen(false);
-      refetch();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : t("messages.generateFailed");
-      messageApi.error(errorMessage);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   const columns: ColumnsType<Post> = [
     {
       title: t("table.title"),
@@ -209,19 +180,6 @@ export default function PostsPage() {
     },
     ...(!isMobile
       ? [
-          {
-            title: t("table.reactions"),
-            key: "reactions",
-            width: 100,
-            render: (_: unknown, record: Post) => (
-              <Tooltip title={t("table.reactions")}>
-                <span className="flex items-center gap-1 text-green-500">
-                  <LikeOutlined />
-                  <span>{record.reactions || 0}</span>
-                </span>
-              </Tooltip>
-            ),
-          },
           {
             title: t("table.created"),
             dataIndex: "createdAt",
@@ -325,7 +283,7 @@ export default function PostsPage() {
               <Button
                 icon={!isProfileComplete ? <WarningOutlined /> : <ThunderboltOutlined />}
                 block={isMobile}
-                onClick={handleOpenGenerateModal}
+                onClick={() => setIsGenerateModalOpen(true)}
                 disabled={!isProfileComplete}
                 style={isProfileComplete ? {
                   background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
@@ -465,58 +423,105 @@ export default function PostsPage() {
         </Form>
       </Modal>
 
-      {/* View Modal */}
+      {/* View Modal — LinkedIn-style preview */}
       <Modal
         title={null}
         open={isViewModalOpen}
         onCancel={() => setIsViewModalOpen(false)}
         footer={null}
-        width={isMobile ? "95%" : 640}
-        centered={isMobile}
+        width={isMobile ? "95%" : 520}
+        centered
+        styles={{ body: { padding: 0 } }}
       >
         {viewingPost && (
-          <div className="space-y-4">
-            {/* Header */}
-            <div className="flex items-center gap-3 flex-wrap">
+          <div>
+            {/* Header bar */}
+            <div
+              className="flex items-center gap-3 flex-wrap px-5 py-3"
+              style={{ borderBottom: "1px solid #f0f0f0" }}
+            >
               <Tag color={postStatusConfig[viewingPost.status].color}>
                 {tStatus(viewingPost.status)}
               </Tag>
-              {viewingPost.status === "published" && (
-                <Tooltip title={t("table.reactions")}>
-                  <span className="flex items-center gap-1 text-green-500 text-sm">
-                    <LikeOutlined />
-                    <span>{viewingPost.reactions || 0}</span>
-                  </span>
-                </Tooltip>
-              )}
+              <Text type="secondary" className="text-xs ml-auto" ellipsis>
+                {viewingPost.title}
+              </Text>
             </div>
 
-            {/* Title */}
-            <Title level={3} className="!mt-2 !mb-0">
-              {viewingPost.title}
-            </Title>
+            {/* LinkedIn Card */}
+            <div
+              className="mx-5 my-4 rounded-xl overflow-hidden"
+              style={{ border: "1px solid #e5e7eb", background: "#fff" }}
+            >
+              {/* Profile */}
+              <div className="flex items-center gap-3 px-4 pt-3 pb-1.5">
+                <Avatar
+                  src={session?.user?.image}
+                  icon={<UserOutlined />}
+                  size={40}
+                />
+                <div className="leading-tight">
+                  <Text strong className="text-[13px]">
+                    {session?.user?.name || "You"}
+                  </Text>
+                  <div className="flex items-center gap-1 text-gray-400 text-[11px] mt-0.5">
+                    <span>
+                      {viewingPost.publishedAt
+                        ? new Date(viewingPost.publishedAt).toLocaleDateString()
+                        : new Date(viewingPost.createdAt).toLocaleDateString()}
+                    </span>
+                    <span>·</span>
+                    <GlobalOutlined style={{ fontSize: 9 }} />
+                  </div>
+                </div>
+              </div>
 
-            {/* Content */}
-            <div className="bg-gray-50 rounded-xl p-5 my-4">
-              <pre
-                className="whitespace-pre-wrap text-sm leading-relaxed"
-                style={{ fontFamily: "inherit", margin: 0 }}
-              >
-                {viewingPost.content}
-              </pre>
+              {/* Content */}
+              <div className="px-4 py-2">
+                <pre
+                  className="whitespace-pre-wrap text-[13px] leading-relaxed"
+                  style={{ fontFamily: "inherit", margin: 0, color: "#1d1d1d" }}
+                >
+                  {viewingPost.content}
+                </pre>
+              </div>
+
+              {/* Image */}
+              {viewingPost.imageUrl && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={viewingPost.imageUrl}
+                  alt=""
+                  className="w-full object-cover"
+                  style={{ maxHeight: 260 }}
+                />
+              )}
+
             </div>
 
             {/* Meta */}
-            <div className="flex justify-between text-sm text-gray-500 pt-2">
-              <span>{t("view.created")} {new Date(viewingPost.createdAt).toLocaleString()}</span>
+            <div className="flex justify-between text-[11px] text-gray-400 px-5 pb-1">
+              <span>
+                {t("view.created")}{" "}
+                {new Date(viewingPost.createdAt).toLocaleString()}
+              </span>
               {viewingPost.publishedAt && (
-                <span>{t("view.published")} {new Date(viewingPost.publishedAt).toLocaleString()}</span>
+                <span>
+                  {t("view.published")}{" "}
+                  {new Date(viewingPost.publishedAt).toLocaleString()}
+                </span>
               )}
             </div>
 
             {/* Actions */}
-            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-4">
-              <Button onClick={() => setIsViewModalOpen(false)} block={isMobile}>
+            <div
+              className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 px-5 py-4"
+              style={{ borderTop: "1px solid #f0f0f0", background: "#fafafa" }}
+            >
+              <Button
+                onClick={() => setIsViewModalOpen(false)}
+                block={isMobile}
+              >
                 {tCommon("close")}
               </Button>
               <Button
@@ -541,11 +546,22 @@ export default function PostsPage() {
                   cancelText={tCommon("cancel")}
                   disabled={isPublishing}
                 >
-                  <Button 
-                    type="primary" 
-                    icon={publishingId === viewingPost.id ? <LoadingOutlined /> : <SendOutlined />}
+                  <Button
+                    type="primary"
+                    icon={
+                      publishingId === viewingPost.id ? (
+                        <LoadingOutlined />
+                      ) : (
+                        <SendOutlined />
+                      )
+                    }
                     loading={publishingId === viewingPost.id}
                     block={isMobile}
+                    style={{
+                      background:
+                        "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                      fontWeight: 600,
+                    }}
                   >
                     {tCommon("publish")}
                   </Button>
@@ -557,55 +573,12 @@ export default function PostsPage() {
       </Modal>
 
       {/* Generate Modal */}
-      <Modal
-        title={t("generate.title")}
+      <GeneratePostsModal
         open={isGenerateModalOpen}
-        onCancel={() => setIsGenerateModalOpen(false)}
-        footer={null}
-        width={isMobile ? "95%" : 400}
-        centered={isMobile}
-        destroyOnClose
-      >
-        <div className="py-4">
-          <Text type="secondary" className="block mb-4">
-            {t("generate.howMany")}
-          </Text>
-          <InputNumber
-            min={1}
-            max={10}
-            value={postCount}
-            onChange={(value) => setPostCount(value || 1)}
-            size="large"
-            style={{ width: "100%" }}
-            placeholder={t("generate.placeholder")}
-          />
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 mt-6">
-            <Button 
-              size="large" 
-              onClick={() => setIsGenerateModalOpen(false)} 
-              block={isMobile}
-            >
-              {tCommon("cancel")}
-            </Button>
-            <Button
-              type="primary"
-              size="large"
-              icon={<ThunderboltOutlined />}
-              loading={isGenerating}
-              onClick={handleGenerate}
-              block={isMobile}
-              style={{
-                background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-                borderColor: "#d97706",
-              }}
-            >
-              {postCount > 1 
-                ? t("generate.buttonPlural", { count: postCount })
-                : t("generate.button", { count: postCount })}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        onClose={() => setIsGenerateModalOpen(false)}
+        onSaved={refetch}
+        profileTone={profile.preferredTone}
+      />
     </MainLayout>
   );
 }

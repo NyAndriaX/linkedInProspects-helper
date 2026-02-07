@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Layout, Menu, theme } from "antd";
-import { HomeOutlined, FileTextOutlined, SettingOutlined, ClockCircleOutlined } from "@ant-design/icons";
+import { HomeOutlined, FileTextOutlined, SettingOutlined, ClockCircleOutlined, SendOutlined, TeamOutlined, BulbOutlined } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Logo } from "@/components/ui/Logo";
 import { Link, usePathname } from "@/i18n/routing";
@@ -39,6 +39,21 @@ export function Sidebar({
       key: "/schedule",
       icon: <ClockCircleOutlined />,
       label: <Link href="/schedule">{t("schedule")}</Link>,
+    },
+    {
+      key: "/outreach",
+      icon: <SendOutlined />,
+      label: <Link href="/outreach">{t("outreach")}</Link>,
+    },
+    {
+      key: "/crm",
+      icon: <TeamOutlined />,
+      label: <Link href="/crm">{t("crm")}</Link>,
+    },
+    {
+      key: "/ideas",
+      icon: <BulbOutlined />,
+      label: <Link href="/ideas">{t("ideas")}</Link>,
     },
     {
       key: "/settings",
