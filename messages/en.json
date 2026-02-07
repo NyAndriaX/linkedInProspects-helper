@@ -27,13 +27,62 @@
   },
   "home": {
     "hello": "Hello, {name}",
-    "subtitle": "Manage your LinkedIn posts and content.",
+    "subtitle": "LinkedIn Prospecting",
+    "dateToday": "Today",
     "completeProfile": "Complete your profile",
     "completeProfileDescShort": "Add your details.",
     "completeProfileDescLong": "Add your professional details to generate posts with AI.",
     "setup": "Setup",
+    "loading": "Loading dashboard…",
+    "quickActions": {
+      "title": "Quick Actions",
+      "newProspect": "New prospect",
+      "outreach": "Outreach message",
+      "createPost": "Create a post",
+      "openCrm": "Open CRM"
+    },
+    "urgencies": {
+      "title": "Urgent Actions",
+      "overdueTitle": "Overdue follow-ups",
+      "todayTitle": "Due today",
+      "upcomingTitle": "Next 3 days",
+      "allClear": "Pipeline is clear today!",
+      "allClearDesc": "Add a prospect or create content to stay active",
+      "markSent": "Sent",
+      "markResponded": "Responded",
+      "viewProspect": "View",
+      "daysOverdue": "{days}d overdue",
+      "dueToday": "Today",
+      "inDays": "In {days}d"
+    },
+    "pipeline": {
+      "title": "Pipeline Blockers",
+      "withoutEmail": "No email",
+      "withoutEmailDesc": "prospects have no email",
+      "findEmails": "Find emails",
+      "withoutSequence": "No sequence",
+      "withoutSequenceDesc": "prospects without a follow-up plan",
+      "planFollowups": "Plan follow-ups",
+      "staleContacted": "Waiting >7d",
+      "staleContactedDesc": "contacted without reply for 7+ days",
+      "relaunchNow": "Relaunch"
+    },
+    "ideas": {
+      "title": "Recent post ideas",
+      "generatePost": "Generate post",
+      "schedule": "Schedule",
+      "noIdeas": "No recent ideas",
+      "noIdeasDesc": "Generate fresh ideas to stay visible on LinkedIn",
+      "generateIdeas": "Generate ideas for the week"
+    },
+    "hunter": {
+      "title": "Hunter Credits",
+      "remaining": "{remaining}/{limit} this month",
+      "low": "Credits running low"
+    },
     "stats": {
-      "total": "Total",
+      "prospects": "Prospects",
+      "posts": "Posts",
       "drafts": "Drafts",
       "ready": "Ready",
       "published": "Published"

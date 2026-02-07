@@ -27,13 +27,62 @@
   },
   "home": {
     "hello": "Bonjour, {name}",
-    "subtitle": "Gérez vos publications et contenus LinkedIn.",
+    "subtitle": "Prospection LinkedIn",
+    "dateToday": "Aujourd'hui",
     "completeProfile": "Complétez votre profil",
     "completeProfileDescShort": "Ajoutez vos informations.",
     "completeProfileDescLong": "Ajoutez vos informations professionnelles pour générer des publications avec l'IA.",
     "setup": "Configurer",
+    "loading": "Chargement du dashboard…",
+    "quickActions": {
+      "title": "Actions rapides",
+      "newProspect": "Nouveau prospect",
+      "outreach": "Message outreach",
+      "createPost": "Créer un post",
+      "openCrm": "Ouvrir le CRM"
+    },
+    "urgencies": {
+      "title": "Actions urgentes",
+      "overdueTitle": "Follow-ups en retard",
+      "todayTitle": "À faire aujourd'hui",
+      "upcomingTitle": "Prochains 3 jours",
+      "allClear": "Pipeline nickel aujourd'hui !",
+      "allClearDesc": "Ajoutez un prospect ou créez du contenu pour rester actif",
+      "markSent": "Envoyé",
+      "markResponded": "Répondu",
+      "viewProspect": "Voir",
+      "daysOverdue": "{days}j de retard",
+      "dueToday": "Aujourd'hui",
+      "inDays": "Dans {days}j"
+    },
+    "pipeline": {
+      "title": "Pipeline bloquants",
+      "withoutEmail": "Sans email",
+      "withoutEmailDesc": "prospects n'ont pas d'email",
+      "findEmails": "Trouver des emails",
+      "withoutSequence": "Sans séquence",
+      "withoutSequenceDesc": "prospects sans plan de follow-up",
+      "planFollowups": "Planifier follow-ups",
+      "staleContacted": "En attente >7j",
+      "staleContactedDesc": "contactés sans réponse depuis 7+ jours",
+      "relaunchNow": "Relancer"
+    },
+    "ideas": {
+      "title": "Idées posts récentes",
+      "generatePost": "Générer le post",
+      "schedule": "Programmer",
+      "noIdeas": "Pas d'idées récentes",
+      "noIdeasDesc": "Générez des idées fraîches pour rester visible sur LinkedIn",
+      "generateIdeas": "Générer des idées de la semaine"
+    },
+    "hunter": {
+      "title": "Crédits Hunter",
+      "remaining": "{remaining}/{limit} ce mois",
+      "low": "Crédits bientôt épuisés"
+    },
     "stats": {
-      "total": "Total",
+      "prospects": "Prospects",
+      "posts": "Publications",
       "drafts": "Brouillons",
       "ready": "Prêts",
       "published": "Publiés"
