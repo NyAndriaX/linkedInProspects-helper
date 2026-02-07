@@ -100,7 +100,7 @@ export function getAgenda(): Agenda {
         }
 
         const response = await linkedInClient.post(
-          "/ugcPosts",
+          "/posts",
           postBody,
           {
             headers: {
@@ -109,8 +109,8 @@ export function getAgenda(): Agenda {
           }
         );
 
-        // Extract the LinkedIn URN from the response
-        // The URN can be in the X-RestLi-Id header or in the response body as 'id'
+        // Extract the LinkedIn URN from the response headers (201 response)
+        // The x-restli-id header contains: urn:li:share:{id} or urn:li:ugcPost:{id}
         const linkedInUrn = response.headers["x-restli-id"] || response.data?.id || null;
 
         // Update post status and save LinkedIn URN

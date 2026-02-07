@@ -78,9 +78,9 @@ export async function POST(request: NextRequest) {
       postBody = buildPostBody(session.linkedInId, content);
     }
 
-    // Publish to LinkedIn
+    // Publish to LinkedIn using the new REST Posts API
     const response = await linkedInClient.post(
-      "/ugcPosts",
+      "/posts",
       postBody,
       {
         headers: {
@@ -89,13 +89,12 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    // Log all response headers to debug URN extraction
+    // Log response for debugging
     console.log(`[LinkedIn Publish] Response status: ${response.status}`);
     console.log(`[LinkedIn Publish] Response headers:`, JSON.stringify(response.headers, null, 2));
-    console.log(`[LinkedIn Publish] Response data:`, JSON.stringify(response.data, null, 2));
 
-    // Extract post URN from response headers
-    // The URN format is: urn:li:ugcPost:123456789 or urn:li:share:123456789
+    // Extract post URN from response headers (201 response)
+    // The x-restli-id header contains: urn:li:share:{id} or urn:li:ugcPost:{id}
     const linkedInPostId = response.headers["x-restli-id"] || response.data?.id || null;
     
     console.log(`[LinkedIn Publish] Extracted URN: ${linkedInPostId}`);
