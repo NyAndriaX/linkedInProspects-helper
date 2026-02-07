@@ -305,12 +305,13 @@ export async function syncScheduleJobs(scheduleId: string): Promise<void> {
       // Example: "15 13 * * 1" = every Monday at 13:15
       const cronExpression = toCronExpression(time, schedule.dayOfWeek);
       
-      await agenda.every(
-        cronExpression,
-        jobName,
-        jobData,
-        { timezone: schedule.timezone }
-      );
+      // Use agenda.create() + repeatEvery() instead of agenda.every()
+      // agenda.every() uses the job name as unique key and overwrites previous jobs,
+      // so only the last schedule's job would survive. create() + repeatEvery() creates
+      // separate documents in agendaJobs, allowing multiple schedules to coexist.
+      const job = agenda.create(jobName, jobData);
+      job.repeatEvery(cronExpression, { timezone: schedule.timezone });
+      await job.save();
       
       console.log(
         `[Agenda] Created recurring job for schedule ${scheduleId}: cron "${cronExpression}" (${DAY_NAMES[schedule.dayOfWeek]} at ${time}, tz: ${schedule.timezone})`
