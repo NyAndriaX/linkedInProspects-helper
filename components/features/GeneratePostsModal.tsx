@@ -260,9 +260,9 @@ export function GeneratePostsModal({
       open={open}
       onCancel={handleClose}
       footer={null}
-      width={step === 0 ? 540 : 640}
-      style={{ maxWidth: "95vw" }}
-      styles={{ body: { padding: 0 } }}
+      width={step === 0 ? 540 : 680}
+      style={{ maxWidth: "95vw", top: 20 }}
+      styles={{ body: { padding: 0, overflow: "hidden" } }}
       destroyOnClose
       centered
     >
@@ -270,7 +270,7 @@ export function GeneratePostsModal({
 
       {/* ━━━ Modal Header ━━━ */}
       <div
-        className="px-6 pt-5 pb-4"
+        className="px-3 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4"
         style={{
           background: "linear-gradient(135deg, #fafafa 0%, #f5f3ff 100%)",
           borderBottom: "1px solid #f0f0f0",
@@ -447,13 +447,13 @@ export function GeneratePostsModal({
         <div>
           {/* Toolbar */}
           <div
-            className="flex items-center justify-between gap-3 px-6 py-3"
+            className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 sm:gap-3 px-3 sm:px-6 py-2 sm:py-3"
             style={{ background: "#fafafa", borderBottom: "1px solid #f0f0f0" }}
           >
-            <Text type="secondary" className="text-sm">
+            <Text type="secondary" className="text-xs sm:text-sm">
               {t("generate.preview.subtitle", { count: posts.length })}
             </Text>
-            <Space size={4}>
+            <Space size={4} className="shrink-0">
               <Button size="small" type="text" onClick={() => toggleAll(true)}>
                 {t("generate.preview.selectAll")}
               </Button>
@@ -466,8 +466,8 @@ export function GeneratePostsModal({
 
           {/* Posts list */}
           <div
-            className="px-6 py-4 space-y-4 overflow-y-auto"
-            style={{ maxHeight: "58vh" }}
+            className="px-3 sm:px-6 py-3 sm:py-4 space-y-3 sm:space-y-4 overflow-y-auto"
+            style={{ maxHeight: "55vh" }}
           >
             {posts.map((post, index) => {
               const isActive = post.selected && !post.saved;
@@ -487,7 +487,7 @@ export function GeneratePostsModal({
                 >
                   {/* ── Card toolbar ── */}
                   <div
-                    className="flex items-center gap-3 px-4 py-2.5"
+                    className="flex flex-wrap items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5"
                     style={{
                       background: post.saved
                         ? "#f6ffed"
@@ -516,15 +516,20 @@ export function GeneratePostsModal({
                         updatePost(index, "title", e.target.value)
                       }
                       variant="borderless"
-                      className="flex-1 font-medium! text-sm!"
+                      className="font-medium! text-sm!"
                       disabled={post.saved}
-                      style={{ padding: 0, background: "transparent" }}
+                      style={{
+                        padding: 0,
+                        background: "transparent",
+                        flex: "1 1 150px",
+                        minWidth: 0,
+                      }}
                     />
                     {post.saved ? (
                       <Tag
                         color="success"
                         icon={<CheckCircleFilled />}
-                        className="mr-0"
+                        className="mr-0 ml-auto"
                       >
                         {t("generate.preview.scheduledTag")}
                       </Tag>
@@ -538,6 +543,7 @@ export function GeneratePostsModal({
                           { value: "ready", label: tStatus("ready") },
                         ]}
                         variant="borderless"
+                        className="ml-auto"
                         style={{ width: 100 }}
                       />
                     )}
@@ -546,14 +552,15 @@ export function GeneratePostsModal({
                   {/* ── LinkedIn Preview ── */}
                   <div>
                     {/* Profile header */}
-                    <div className="flex items-center gap-3 px-4 pt-3 pb-1">
+                    <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 pt-3 pb-1">
                       <Avatar
                         src={session?.user?.image}
                         icon={<UserOutlined />}
-                        size={36}
+                        size={32}
+                        className="shrink-0"
                       />
-                      <div className="leading-tight">
-                        <Text strong className="text-xs">
+                      <div className="leading-tight min-w-0">
+                        <Text strong className="text-xs block truncate">
                           {session?.user?.name || "You"}
                         </Text>
                         <div className="flex items-center gap-1 text-gray-400 text-[11px]">
@@ -565,7 +572,7 @@ export function GeneratePostsModal({
                     </div>
 
                     {/* Content */}
-                    <div className="px-4 py-1">
+                    <div className="px-3 sm:px-4 py-1">
                       <TextArea
                         value={post.content}
                         onChange={(e) =>
@@ -578,6 +585,7 @@ export function GeneratePostsModal({
                           padding: 0,
                           color: "#1d1d1d",
                           resize: "none",
+                          wordBreak: "break-word",
                         }}
                         disabled={post.saved}
                       />
@@ -585,7 +593,7 @@ export function GeneratePostsModal({
 
                     {/* Hashtags */}
                     {post.hashtags.length > 0 && (
-                      <div className="px-4 pb-2 flex flex-wrap gap-x-1.5 gap-y-0.5">
+                      <div className="px-3 sm:px-4 pb-2 flex flex-wrap gap-x-1.5 gap-y-0.5">
                         {post.hashtags.map((tag, i) => (
                           <span
                             key={i}
@@ -613,13 +621,13 @@ export function GeneratePostsModal({
                   {/* ── Card footer ── */}
                   {!post.saved && (
                     <div
-                      className="flex items-center justify-between px-4 py-2"
+                      className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2"
                       style={{
                         background: "#fafafa",
                         borderTop: "1px solid #f0f0f0",
                       }}
                     >
-                      <Text type="secondary" className="text-[11px]">
+                      <Text type="secondary" className="text-[11px] hidden sm:inline">
                         <EditOutlined className="mr-1" />
                         {t("generate.preview.subtitle", { count: 1 }).split(
                           "."
@@ -629,6 +637,7 @@ export function GeneratePostsModal({
                         size="small"
                         icon={<CalendarOutlined />}
                         onClick={() => handleSchedulePost(index)}
+                        className="ml-auto"
                         style={{
                           borderColor: "#d97706",
                           color: "#d97706",
@@ -642,7 +651,7 @@ export function GeneratePostsModal({
                   )}
                   {post.saved && (
                     <div
-                      className="flex items-center justify-end px-4 py-2"
+                      className="flex items-center justify-end px-3 sm:px-4 py-2"
                       style={{
                         background: "#f6ffed",
                         borderTop: "1px solid #d9f7be",
@@ -662,7 +671,7 @@ export function GeneratePostsModal({
 
           {/* Bottom bar */}
           <div
-            className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 px-6 py-4"
+            className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 px-3 sm:px-6 py-3 sm:py-4"
             style={{
               borderTop: "1px solid #f0f0f0",
               background: "#fafafa",
@@ -672,6 +681,7 @@ export function GeneratePostsModal({
               icon={<ArrowLeftOutlined />}
               onClick={() => setStep(0)}
               type="text"
+              className="text-xs sm:text-sm"
             >
               {t("generate.preview.regenerate")}
             </Button>
@@ -681,6 +691,7 @@ export function GeneratePostsModal({
               loading={isSaving}
               onClick={handleSave}
               disabled={selectedCount === 0}
+              className="text-xs sm:text-sm"
               style={
                 selectedCount > 0
                   ? {
