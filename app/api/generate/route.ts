@@ -13,35 +13,93 @@ interface GenerateRequest {
 }
 
 /**
- * Fetch a relevant image from Unsplash based on a search query
+ * Common stop words to strip from search queries (French + English)
  */
-async function fetchUnsplashImage(query: string, page = 1): Promise<string | null> {
+const STOP_WORDS = new Set([
+  // French
+  "le", "la", "les", "de", "du", "des", "un", "une", "et", "en", "est", "que",
+  "qui", "dans", "pour", "pas", "sur", "ce", "il", "ne", "se", "son", "sa",
+  "au", "aux", "avec", "par", "mon", "ma", "mes", "j", "d", "l", "n", "s",
+  "nous", "vous", "leur", "leurs", "jai", "cest", "sont", "être", "avoir",
+  "comment", "pourquoi", "quand", "votre", "cette", "ces", "tout", "plus",
+  // English
+  "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of",
+  "is", "it", "my", "your", "i", "we", "you", "how", "what", "why", "when",
+  "from", "with", "that", "this", "was", "are", "were", "been", "have", "has",
+  "things", "learned", "about",
+]);
+
+/**
+ * Extract short, meaningful keywords from a title for Unsplash search.
+ * Removes stop words and special characters, keeps 2-4 meaningful words.
+ */
+function extractSearchKeywords(text: string): string {
+  const words = text
+    .toLowerCase()
+    .replace(/['']/g, " ")           // Smart quotes → spaces
+    .replace(/[^a-zà-ÿ0-9\s]/g, "") // Remove punctuation
+    .split(/\s+/)
+    .filter((w) => w.length > 2 && !STOP_WORDS.has(w));
+
+  // Keep at most 3 meaningful words for a focused query
+  return words.slice(0, 3).join(" ");
+}
+
+/**
+ * Fetch a relevant image from Unsplash, with fallback queries.
+ * Tries the primary query first, then each fallback in order.
+ */
+async function fetchUnsplashImage(
+  queries: string[],
+  pickIndex = 0
+): Promise<string | null> {
   const accessKey = process.env.UNSPLASH_ACCESS_KEY;
   if (!accessKey) {
     console.warn("[Unsplash] No UNSPLASH_ACCESS_KEY configured, skipping image fetch");
     return null;
   }
 
-  try {
-    console.log(`[Unsplash] Fetching image for query: "${query}" (page ${page})`);
-    const response = await fetch(
-      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&page=${page}&orientation=landscape&client_id=${accessKey}`,
-      { signal: AbortSignal.timeout(15000) }
-    );
+  for (const query of queries) {
+    if (!query.trim()) continue;
 
-    if (!response.ok) {
-      console.warn("[Unsplash] API returned status:", response.status);
-      return null;
+    try {
+      console.log(`[Unsplash] Searching: "${query}" (pickIndex: ${pickIndex})`);
+
+      const response = await fetch(
+        `https://api.unsplash.com/search/photos?` +
+        `query=${encodeURIComponent(query)}&per_page=10&page=1&orientation=landscape` +
+        `&client_id=${accessKey}`,
+        { signal: AbortSignal.timeout(15000) }
+      );
+
+      if (!response.ok) {
+        console.warn(`[Unsplash] API returned ${response.status} for query "${query}"`);
+        continue;
+      }
+
+      const data = await response.json();
+      const results = data.results || [];
+
+      if (results.length === 0) {
+        console.log(`[Unsplash] No results for "${query}", trying next fallback…`);
+        continue;
+      }
+
+      // Pick a different image for each post to avoid duplicates
+      const picked = results[pickIndex % results.length];
+      const imageUrl = picked?.urls?.regular || null;
+
+      if (imageUrl) {
+        console.log(`[Unsplash] Found image for "${query}" (picked ${pickIndex % results.length}/${results.length})`);
+        return imageUrl;
+      }
+    } catch (error) {
+      console.error(`[Unsplash] Error for "${query}":`, error instanceof Error ? error.message : error);
     }
-
-    const data = await response.json();
-    const imageUrl = data.results?.[0]?.urls?.regular || null;
-    console.log("[Unsplash] Image result:", imageUrl ? "found" : "no results");
-    return imageUrl;
-  } catch (error) {
-    console.error("[Unsplash] Failed to fetch image:", error instanceof Error ? error.message : error);
-    return null;
   }
+
+  console.warn("[Unsplash] All queries exhausted, no image found");
+  return null;
 }
 
 // POST /api/generate - Generate posts with AI
@@ -152,7 +210,7 @@ export async function POST(request: NextRequest) {
     // Parse generated posts
     const generatedPosts = parseGeneratedPosts(responseContent);
 
-    // Fetch Unsplash images if requested (one per post, based on title)
+    // Fetch Unsplash images if requested (one per post, with smart keyword extraction)
     let postsWithImages = generatedPosts.map((post) => ({
       ...post,
       imageUrl: null as string | null,
@@ -161,12 +219,27 @@ export async function POST(request: NextRequest) {
     console.log("[Generate] includeImage:", includeImage, "| posts count:", generatedPosts.length);
 
     if (includeImage) {
+      // Build fallback query chain from user profile context
+      const industryKeyword = user.industry || "";
+      const topicKeyword = topic || "";
+
       const imagePromises = generatedPosts.map((post, index) => {
-        // Use post title for unique queries; fall back to topic + index variation
-        const query = post.title || topic || "technology";
-        // Use different pages so each post gets a distinct image
-        return fetchUnsplashImage(query, index + 1);
+        // Build a cascade of queries from most specific to most generic:
+        // 1. Keywords extracted from the post title
+        // 2. The user-provided topic (if any)
+        // 3. The user's industry
+        // 4. A generic fallback
+        const titleKeywords = extractSearchKeywords(post.title || "");
+        const queries = [
+          titleKeywords,
+          topicKeyword,
+          industryKeyword,
+          "professional business technology",
+        ].filter(Boolean);
+
+        return fetchUnsplashImage(queries, index);
       });
+
       const images = await Promise.all(imagePromises);
       console.log("[Generate] Unsplash images fetched:", images.map((img) => img ? "OK" : "null"));
       postsWithImages = postsWithImages.map((post, i) => ({
