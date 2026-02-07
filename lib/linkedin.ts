@@ -25,7 +25,7 @@ export const linkedInClient = axios.create({
 });
 
 /**
- * Build the UGC post body for LinkedIn API
+ * Build the UGC post body for LinkedIn API (text only)
  */
 export function buildPostBody(linkedInId: string, content: string) {
   return {
@@ -41,6 +41,143 @@ export function buildPostBody(linkedInId: string, content: string) {
       "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
     },
   };
+}
+
+/**
+ * Build the UGC post body with an image for LinkedIn API
+ */
+export function buildPostBodyWithImage(
+  linkedInId: string,
+  content: string,
+  imageAsset: string
+) {
+  return {
+    author: `urn:li:person:${linkedInId}`,
+    lifecycleState: "PUBLISHED",
+    specificContent: {
+      "com.linkedin.ugc.ShareContent": {
+        shareCommentary: { text: content },
+        shareMediaCategory: "IMAGE",
+        media: [
+          {
+            status: "READY",
+            media: imageAsset,
+          },
+        ],
+      },
+    },
+    visibility: {
+      "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
+    },
+  };
+}
+
+/**
+ * Register an image upload with LinkedIn API
+ * Returns the upload URL and the asset URN
+ */
+export async function registerImageUpload(
+  linkedInId: string,
+  accessToken: string
+): Promise<{ uploadUrl: string; asset: string }> {
+  const registerBody = {
+    registerUploadRequest: {
+      recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
+      owner: `urn:li:person:${linkedInId}`,
+      serviceRelationships: [
+        {
+          relationshipType: "OWNER",
+          identifier: "urn:li:userGeneratedContent",
+        },
+      ],
+    },
+  };
+
+  console.log("[LinkedIn Image] Registering image upload...");
+
+  const response = await linkedInClient.post(
+    "/assets?action=registerUpload",
+    registerBody,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  const uploadMechanism =
+    response.data.value.uploadMechanism[
+      "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
+    ];
+  const asset = response.data.value.asset;
+
+  console.log(`[LinkedIn Image] Upload registered. Asset: ${asset}`);
+
+  return {
+    uploadUrl: uploadMechanism.uploadUrl,
+    asset,
+  };
+}
+
+/**
+ * Download an image from a URL and upload it to LinkedIn
+ */
+export async function uploadImageToLinkedIn(
+  imageUrl: string,
+  uploadUrl: string,
+  accessToken: string
+): Promise<void> {
+  console.log(`[LinkedIn Image] Downloading image from: ${imageUrl}`);
+
+  // Download the image as a buffer
+  const imageResponse = await axios.get(imageUrl, {
+    responseType: "arraybuffer",
+    timeout: REQUEST_TIMEOUT,
+    httpsAgent,
+  });
+
+  const imageBuffer = Buffer.from(imageResponse.data);
+  const contentType = imageResponse.headers["content-type"] || "image/jpeg";
+
+  console.log(
+    `[LinkedIn Image] Uploading ${imageBuffer.length} bytes to LinkedIn...`
+  );
+
+  // Upload binary to LinkedIn's upload URL
+  await axios.put(uploadUrl, imageBuffer, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": contentType,
+    },
+    timeout: 60000, // 60s for large images
+    httpsAgent,
+    maxBodyLength: Infinity,
+    maxContentLength: Infinity,
+  });
+
+  console.log("[LinkedIn Image] Image uploaded successfully");
+}
+
+/**
+ * Full flow: register, download, upload image to LinkedIn, and return the asset URN
+ * Returns null if the image upload fails (so the post can still be published without image)
+ */
+export async function prepareLinkedInImage(
+  imageUrl: string,
+  linkedInId: string,
+  accessToken: string
+): Promise<string | null> {
+  try {
+    const { uploadUrl, asset } = await registerImageUpload(
+      linkedInId,
+      accessToken
+    );
+    await uploadImageToLinkedIn(imageUrl, uploadUrl, accessToken);
+    return asset;
+  } catch (error) {
+    console.error("[LinkedIn Image] Failed to prepare image, publishing without image:", error);
+    return null;
+  }
 }
 
 /**

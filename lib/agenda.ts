@@ -71,12 +71,37 @@ export function getAgenda(): Agenda {
           return;
         }
 
-        // Publish to LinkedIn
-        const { linkedInClient, buildPostBody } = await import("./linkedin");
+        // Publish to LinkedIn (with image support)
+        const {
+          linkedInClient,
+          buildPostBody,
+          buildPostBodyWithImage,
+          prepareLinkedInImage,
+        } = await import("./linkedin");
+
+        // If post has an image, upload it to LinkedIn first
+        let postBody;
+        if (post.imageUrl) {
+          const imageAsset = await prepareLinkedInImage(
+            post.imageUrl,
+            user.linkedInId,
+            account.access_token
+          );
+
+          if (imageAsset) {
+            console.log(`[Agenda] Image asset ready: ${imageAsset}`);
+            postBody = buildPostBodyWithImage(user.linkedInId, post.content, imageAsset);
+          } else {
+            console.warn("[Agenda] Image upload failed, publishing text-only");
+            postBody = buildPostBody(user.linkedInId, post.content);
+          }
+        } else {
+          postBody = buildPostBody(user.linkedInId, post.content);
+        }
 
         const response = await linkedInClient.post(
           "/ugcPosts",
-          buildPostBody(user.linkedInId, post.content),
+          postBody,
           {
             headers: {
               Authorization: `Bearer ${account.access_token}`,

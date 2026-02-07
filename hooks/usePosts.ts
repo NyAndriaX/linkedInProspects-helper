@@ -80,7 +80,7 @@ export function usePosts() {
     }
   }, []);
 
-  // Publish a post to LinkedIn
+  // Publish a post to LinkedIn (with image support)
   const publishPost = useCallback(
     async (id: string): Promise<PublishResult> => {
       const post = posts.find((p) => p.id === id);
@@ -94,6 +94,7 @@ export function usePosts() {
         const data = await apiClient.post<PublishResponse>("/api/linkedin/publish", {
           content: post.content,
           postId: id,
+          imageUrl: post.imageUrl || null,
         });
 
         // Refetch posts to get updated status and linkedInUrn from server

@@ -5,12 +5,15 @@ import { prisma } from "@/lib/prisma";
 import {
   linkedInClient,
   buildPostBody,
+  buildPostBodyWithImage,
+  prepareLinkedInImage,
   handleLinkedInError,
 } from "@/lib/linkedin";
 
 interface PublishRequest {
   content: string;
   postId: string;
+  imageUrl?: string | null;
 }
 
 export async function POST(request: NextRequest) {
@@ -26,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse and validate request body
-    const { content, postId }: PublishRequest = await request.json();
+    const { content, postId, imageUrl }: PublishRequest = await request.json();
 
     if (!content?.trim()) {
       return NextResponse.json(
@@ -52,11 +55,33 @@ export async function POST(request: NextRequest) {
 
     console.log(`[LinkedIn Publish] Starting publication for postId: ${postId}`);
     console.log(`[LinkedIn Publish] LinkedIn ID: ${session.linkedInId}`);
+    console.log(`[LinkedIn Publish] Image URL: ${imageUrl || "none"}`);
+
+    // If there's an image, upload it to LinkedIn first
+    let postBody;
+    if (imageUrl) {
+      const imageAsset = await prepareLinkedInImage(
+        imageUrl,
+        session.linkedInId,
+        session.accessToken
+      );
+
+      if (imageAsset) {
+        console.log(`[LinkedIn Publish] Image asset ready: ${imageAsset}`);
+        postBody = buildPostBodyWithImage(session.linkedInId, content, imageAsset);
+      } else {
+        // Image upload failed, fall back to text-only post
+        console.warn("[LinkedIn Publish] Image upload failed, publishing text-only");
+        postBody = buildPostBody(session.linkedInId, content);
+      }
+    } else {
+      postBody = buildPostBody(session.linkedInId, content);
+    }
 
     // Publish to LinkedIn
     const response = await linkedInClient.post(
       "/ugcPosts",
-      buildPostBody(session.linkedInId, content),
+      postBody,
       {
         headers: {
           Authorization: `Bearer ${session.accessToken}`,
