@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { ApiResponse, getAuthenticatedSession } from "@/lib/api-utils";
-import { groq, GROQ_MODEL } from "@/lib/groq";
+import { getGroqClient, GROQ_MODEL } from "@/lib/groq";
 
 interface OutreachRequest {
   prospectName: string;
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     const prompt = buildOutreachPrompt(body);
 
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       model: GROQ_MODEL,
       messages: [
         {

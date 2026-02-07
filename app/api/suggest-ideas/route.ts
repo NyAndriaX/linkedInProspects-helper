@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { ApiResponse, getAuthenticatedSession } from "@/lib/api-utils";
-import { groq, GROQ_MODEL } from "@/lib/groq";
+import { getGroqClient, GROQ_MODEL } from "@/lib/groq";
 
 interface PostIdea {
   hook: string;
@@ -127,7 +127,7 @@ export async function GET() {
 
     const prompt = buildIdeasPrompt(user || {});
 
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       model: GROQ_MODEL,
       messages: [
         {

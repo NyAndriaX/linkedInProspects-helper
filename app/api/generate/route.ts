@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ApiResponse, getAuthenticatedSession } from "@/lib/api-utils";
-import { groq, GROQ_MODEL, buildPostGenerationPrompt, parseGeneratedPosts, ProfileData, GenerationOptions } from "@/lib/groq";
+import { getGroqClient, GROQ_MODEL, buildPostGenerationPrompt, parseGeneratedPosts, ProfileData, GenerationOptions } from "@/lib/groq";
 
 interface GenerateRequest {
   count: number;
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     const prompt = buildPostGenerationPrompt(profile, count, existingTitles, generationOptions);
 
     // Call Groq API
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       model: GROQ_MODEL,
       messages: [
         {

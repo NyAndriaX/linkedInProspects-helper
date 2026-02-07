@@ -1,10 +1,18 @@
 import OpenAI from "openai";
 
 // Groq API client (compatible with OpenAI SDK)
-export const groq = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY,
-  baseURL: "https://api.groq.com/openai/v1",
-});
+// Lazy initialization to avoid build-time errors when env vars are not set
+let _groq: OpenAI | null = null;
+
+export function getGroqClient(): OpenAI {
+  if (!_groq) {
+    _groq = new OpenAI({
+      apiKey: process.env.GROQ_API_KEY,
+      baseURL: "https://api.groq.com/openai/v1",
+    });
+  }
+  return _groq;
+}
 
 // Model to use (Llama 3.3 70B - best for content generation)
 export const GROQ_MODEL = "llama-3.3-70b-versatile";
