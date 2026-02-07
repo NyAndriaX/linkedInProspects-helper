@@ -5,9 +5,10 @@ import { prisma } from "./prisma";
 let agendaInstance: Agenda | null = null;
 
 /**
- * Get or create the Agenda instance
+ * Get or create the Agenda instance.
+ * Ensures the instance is connected before returning.
  */
-export function getAgenda(): Agenda {
+export async function getAgenda(): Promise<Agenda> {
   if (!agendaInstance) {
     const mongoUri = process.env.DATABASE_URL;
     if (!mongoUri) {
@@ -34,17 +35,37 @@ export function getAgenda(): Agenda {
       console.log(`[Agenda] Running publish job for user ${userId}, schedule ${scheduleId}`);
 
       try {
-        // Get a ready post for this user
-        const post = await prisma.post.findFirst({
-          where: {
-            userId,
-            status: "ready",
-          },
-          orderBy: { createdAt: "asc" }, // Oldest ready post first (FIFO)
+        // Always update lastRunAt so we know the cron fired, even if there's nothing to publish
+        await prisma.schedule.update({
+          where: { id: scheduleId },
+          data: { lastRunAt: new Date() },
         });
 
+        // Count how many ready posts are left for this user
+        const readyCount = await prisma.post.count({
+          where: { userId, status: "ready" },
+        });
+
+        // No ready posts at all — skip gracefully, do NOT attempt to create new posts
+        if (readyCount === 0) {
+          console.log(
+            `[Agenda] No ready posts for user ${userId}. Skipping publication. ` +
+            `The cron job remains active and will retry on the next scheduled run.`
+          );
+          return;
+        }
+
+        console.log(`[Agenda] ${readyCount} ready post(s) remaining for user ${userId}`);
+
+        // Pick the oldest ready post (FIFO queue)
+        const post = await prisma.post.findFirst({
+          where: { userId, status: "ready" },
+          orderBy: { createdAt: "asc" },
+        });
+
+        // Safety check (shouldn't happen since readyCount > 0)
         if (!post) {
-          console.log(`[Agenda] No ready posts found for user ${userId}`);
+          console.warn(`[Agenda] Race condition: ready count was ${readyCount} but no post found`);
           return;
         }
 
@@ -57,7 +78,7 @@ export function getAgenda(): Agenda {
         });
 
         if (!account?.access_token) {
-          console.log(`[Agenda] No LinkedIn account found for user ${userId}`);
+          console.warn(`[Agenda] No LinkedIn access token for user ${userId}. Skipping.`);
           return;
         }
 
@@ -67,7 +88,7 @@ export function getAgenda(): Agenda {
         });
 
         if (!user?.linkedInId) {
-          console.log(`[Agenda] No LinkedIn ID found for user ${userId}`);
+          console.warn(`[Agenda] No LinkedIn ID for user ${userId}. Skipping.`);
           return;
         }
 
@@ -123,18 +144,24 @@ export function getAgenda(): Agenda {
           },
         });
 
-        // Update schedule lastRunAt
-        await prisma.schedule.update({
-          where: { id: scheduleId },
-          data: { lastRunAt: new Date() },
-        });
-
-        console.log(`[Agenda] Successfully published post ${post.id} for user ${userId}`);
+        // Log remaining posts after this publication
+        const remainingReady = readyCount - 1;
+        console.log(
+          `[Agenda] Published post ${post.id} for user ${userId}. ` +
+          `${remainingReady} ready post(s) remaining in queue.`
+        );
       } catch (error) {
         console.error(`[Agenda] Error publishing post:`, error);
       }
     });
 
+    // Wait for the MongoDB connection to be ready
+    await new Promise<void>((resolve, reject) => {
+      agendaInstance!.on("ready", () => resolve());
+      agendaInstance!.on("error", (err) => reject(err));
+    });
+
+    console.log("[Agenda] Connected to MongoDB");
   }
 
   return agendaInstance;
@@ -144,18 +171,19 @@ export function getAgenda(): Agenda {
  * Start the Agenda scheduler
  */
 export async function startAgenda(): Promise<void> {
-  const agenda = getAgenda();
+  const agenda = await getAgenda();
   await agenda.start();
   
   console.log("[Agenda] Scheduler started");
 }
 
 /**
- * Stop the Agenda scheduler
+ * Stop the Agenda scheduler gracefully
  */
 export async function stopAgenda(): Promise<void> {
   if (agendaInstance) {
     await agendaInstance.stop();
+    agendaInstance = null;
     console.log("[Agenda] Scheduler stopped");
   }
 }
@@ -230,10 +258,20 @@ export function calculateNextRunDate(
 }
 
 /**
+ * Convert a time string (HH:mm) and dayOfWeek (0-6) into a cron expression.
+ * Cron format: minute hour * * dayOfWeek
+ * Note: cron uses 0=Sunday, 1=Monday, ..., 6=Saturday (same as JS)
+ */
+function toCronExpression(time: string, dayOfWeek: number): string {
+  const [hours, minutes] = time.split(":").map(Number);
+  return `${minutes} ${hours} * * ${dayOfWeek}`;
+}
+
+/**
  * Create or update agenda jobs for a schedule
  */
 export async function syncScheduleJobs(scheduleId: string): Promise<void> {
-  const agenda = getAgenda();
+  const agenda = await getAgenda();
   
   const schedule = await prisma.schedule.findUnique({
     where: { id: scheduleId },
@@ -255,13 +293,7 @@ export async function syncScheduleJobs(scheduleId: string): Promise<void> {
 
   // Create jobs for each time slot
   for (const time of schedule.times) {
-    const nextRunDate = calculateNextRunDate(
-      schedule.dayOfWeek,
-      time,
-      schedule.timezone
-    );
-
-    const jobName = `publish-linkedin-post`;
+    const jobName = "publish-linkedin-post";
     const jobData = {
       userId: schedule.userId,
       scheduleId: schedule.id,
@@ -269,23 +301,34 @@ export async function syncScheduleJobs(scheduleId: string): Promise<void> {
     };
 
     if (schedule.isRecurring) {
-      // Create recurring job
-      // Agenda uses human-readable interval strings
-      const dayName = DAY_NAMES[schedule.dayOfWeek].toLowerCase();
+      // Create recurring job using cron expression
+      // Example: "15 13 * * 1" = every Monday at 13:15
+      const cronExpression = toCronExpression(time, schedule.dayOfWeek);
+      
       await agenda.every(
-        `${time} on ${dayName}`,
+        cronExpression,
         jobName,
         jobData,
         { timezone: schedule.timezone }
       );
+      
+      console.log(
+        `[Agenda] Created recurring job for schedule ${scheduleId}: cron "${cronExpression}" (${DAY_NAMES[schedule.dayOfWeek]} at ${time}, tz: ${schedule.timezone})`
+      );
     } else {
       // Create one-time job
+      const nextRunDate = calculateNextRunDate(
+        schedule.dayOfWeek,
+        time,
+        schedule.timezone
+      );
+      
       await agenda.schedule(nextRunDate, jobName, jobData);
+      
+      console.log(
+        `[Agenda] Created one-time job for schedule ${scheduleId}: ${DAY_NAMES[schedule.dayOfWeek]} at ${time} -> ${nextRunDate.toISOString()}`
+      );
     }
-
-    console.log(
-      `[Agenda] Created job for schedule ${scheduleId}: ${DAY_NAMES[schedule.dayOfWeek]} at ${time}`
-    );
   }
 
   // Update nextRunAt in the schedule
@@ -300,13 +343,15 @@ export async function syncScheduleJobs(scheduleId: string): Promise<void> {
     where: { id: scheduleId },
     data: { nextRunAt },
   });
+  
+  console.log(`[Agenda] Schedule ${scheduleId} synced, next run at ${nextRunAt.toISOString()}`);
 }
 
 /**
  * Delete all jobs for a schedule
  */
 export async function deleteScheduleJobs(scheduleId: string): Promise<void> {
-  const agenda = getAgenda();
+  const agenda = await getAgenda();
   await agenda.cancel({ "data.scheduleId": scheduleId });
   console.log(`[Agenda] Deleted all jobs for schedule ${scheduleId}`);
 }
