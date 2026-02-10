@@ -38,6 +38,7 @@ model User {
   sessions   Session[]
   schedules  Schedule[]
   prospects  Prospect[]
+  jobAlerts  JobAlert[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -198,4 +199,61 @@ model Usage {
 
   @@unique([userId, month, type])
   @@index([userId])
+}
+
+// ── Job Alerts & Lead Discovery ──
+
+model JobAlert {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String   @db.ObjectId
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String   // e.g. "Dev React Remote"
+  keywords        String[] // ["react", "next.js", "typescript", "remote"]
+  excludeKeywords String[] // words to filter out
+  sources         String[] // ["remotive", "jobicy", "arbeitnow", "reddit", "hackernews"]
+  maxPerDay       Int      @default(5)
+  isActive        Boolean  @default(true)
+  lastFetchAt     DateTime?
+  matches         JobAlertMatch[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isActive])
+}
+
+model JobListing {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  externalId   String   @unique // dedupe key: source + original ID
+  source       String   // "remotive", "jobicy", "arbeitnow", "reddit", "hackernews"
+  title        String
+  company      String?
+  description  String?
+  url          String   // link to the original posting / application page
+  contactEmail String?  // extracted email if present in the post
+  location     String?
+  salary       String?
+  tags         String[]
+  publishedAt  DateTime
+  fetchedAt    DateTime @default(now())
+  matches      JobAlertMatch[]
+
+  @@index([source])
+  @@index([publishedAt])
+}
+
+model JobAlertMatch {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String     @db.ObjectId
+  alertId      String     @db.ObjectId
+  alert        JobAlert   @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  jobListingId String     @db.ObjectId
+  jobListing   JobListing @relation(fields: [jobListingId], references: [id], onDelete: Cascade)
+  status       String     @default("new") // new, saved, dismissed, added_to_crm
+  // NOTE: "applied" status reserved for future auto-apply feature
+  createdAt    DateTime   @default(now())
+
+  @@unique([userId, jobListingId])
+  @@index([userId, status])
+  @@index([alertId])
 }

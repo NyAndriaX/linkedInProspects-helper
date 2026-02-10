@@ -155,6 +155,125 @@ export async function getAgenda(): Promise<Agenda> {
       }
     });
 
+    // ── Job Alerts: daily cron that fetches jobs from free APIs and matches them ──
+    agendaInstance.define("fetch-job-alerts", async () => {
+      console.log("[Agenda] Running daily job alerts fetch");
+
+      try {
+        const { fetchAllJobs, ALL_SOURCES } = await import("./job-sources");
+        const { matchJobs } = await import("./job-matcher");
+
+        // 1. Find all active alerts
+        const activeAlerts = await prisma.jobAlert.findMany({
+          where: { isActive: true },
+        });
+
+        if (activeAlerts.length === 0) {
+          console.log("[Agenda] No active job alerts, skipping fetch");
+          return;
+        }
+
+        // 2. Determine which sources are needed across all alerts
+        const neededSources = new Set<string>();
+        for (const alert of activeAlerts) {
+          const sources = alert.sources.length > 0 ? alert.sources : ALL_SOURCES;
+          sources.forEach((s) => neededSources.add(s));
+        }
+
+        // 3. Fetch jobs from needed sources (one call per source, shared across users)
+        const allJobs = await fetchAllJobs(Array.from(neededSources));
+
+        // 4. Save new listings to DB (skip duplicates via externalId)
+        let newCount = 0;
+        for (const job of allJobs) {
+          try {
+            await prisma.jobListing.upsert({
+              where: { externalId: job.externalId },
+              update: {}, // Already exists, don't overwrite
+              create: {
+                externalId: job.externalId,
+                source: job.source,
+                title: job.title,
+                company: job.company,
+                description: job.description,
+                url: job.url,
+                contactEmail: job.contactEmail,
+                location: job.location,
+                salary: job.salary,
+                tags: job.tags,
+                publishedAt: job.publishedAt,
+              },
+            });
+            newCount++;
+          } catch {
+            // Duplicate or DB error, skip
+          }
+        }
+        console.log(`[Agenda] Upserted ${newCount} job listings`);
+
+        // 5. For each alert, run keyword matcher and create matches
+        for (const alert of activeAlerts) {
+          // Filter jobs by the sources this alert cares about
+          const sourcesForAlert = alert.sources.length > 0 ? alert.sources : ALL_SOURCES;
+          const jobsForAlert = allJobs.filter((j) =>
+            sourcesForAlert.includes(j.source)
+          );
+
+          const matched = matchJobs(
+            jobsForAlert,
+            alert.keywords,
+            alert.excludeKeywords,
+            alert.maxPerDay
+          );
+
+          let matchCount = 0;
+          for (const mJob of matched) {
+            try {
+              // Find the DB record for this job
+              const dbListing = await prisma.jobListing.findUnique({
+                where: { externalId: mJob.externalId },
+              });
+              if (!dbListing) continue;
+
+              // Create match (skip if already exists via unique constraint)
+              await prisma.jobAlertMatch.upsert({
+                where: {
+                  userId_jobListingId: {
+                    userId: alert.userId,
+                    jobListingId: dbListing.id,
+                  },
+                },
+                update: {}, // Already matched, don't overwrite
+                create: {
+                  userId: alert.userId,
+                  alertId: alert.id,
+                  jobListingId: dbListing.id,
+                  status: "new",
+                },
+              });
+              matchCount++;
+            } catch {
+              // Skip duplicates
+            }
+          }
+
+          // Update alert lastFetchAt
+          await prisma.jobAlert.update({
+            where: { id: alert.id },
+            data: { lastFetchAt: new Date() },
+          });
+
+          console.log(
+            `[Agenda] Alert "${alert.name}" (user ${alert.userId}): ${matchCount} new matches from ${jobsForAlert.length} jobs`
+          );
+        }
+
+        console.log("[Agenda] Job alerts fetch complete");
+      } catch (error) {
+        console.error("[Agenda] Error in fetch-job-alerts:", error);
+      }
+    });
+
     // Wait for the MongoDB connection to be ready
     await new Promise<void>((resolve, reject) => {
       agendaInstance!.on("ready", () => resolve());
@@ -168,13 +287,23 @@ export async function getAgenda(): Promise<Agenda> {
 }
 
 /**
- * Start the Agenda scheduler
+ * Start the Agenda scheduler.
+ * Also ensures the daily job-alerts cron is registered (08:30 Europe/Paris).
+ * 8h30 is optimal: early enough to be the first thing users see in the morning,
+ * late enough for APIs to have updated overnight listings.
  */
 export async function startAgenda(): Promise<void> {
   const agenda = await getAgenda();
   await agenda.start();
-  
-  console.log("[Agenda] Scheduler started");
+
+  // Ensure the daily job-alerts cron exists (idempotent: cancel + re-create)
+  await agenda.cancel({ name: "fetch-job-alerts" });
+  const jobAlertCron = agenda.create("fetch-job-alerts", {});
+  // Every day at 08:30 Paris time — optimal morning delivery
+  jobAlertCron.repeatEvery("30 8 * * *", { timezone: "Europe/Paris" });
+  await jobAlertCron.save();
+
+  console.log("[Agenda] Scheduler started (job-alerts cron: daily 08:30 Europe/Paris)");
 }
 
 /**
