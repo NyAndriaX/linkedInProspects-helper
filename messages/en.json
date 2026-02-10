@@ -550,7 +550,7 @@
     },
     "offers": {
       "empty": "No offers yet",
-      "emptyDesc": "Create an alert with your keywords to receive offers every morning at 9am",
+      "emptyDesc": "Create an alert with your keywords to receive offers every morning at 8:30am",
       "new": "New",
       "saved": "Saved",
       "dismissed": "Dismissed",
@@ -572,7 +572,13 @@
       "tags": "Tags",
       "matchedBy": "Alert",
       "noEmail": "No email",
-      "autoApplyFuture": "Auto-apply will be available in a future update"
+      "autoApplyFuture": "Auto-apply will be available in a future update",
+      "initialFetchTitle": "Searching...",
+      "initialFetchDesc": "We're scanning sources to find offers matching your alerts. This may take a few seconds.",
+      "initialFetchDone": "Search complete! {count} offers found.",
+      "initialFetchEmpty": "No recent offers match your keywords. Try again tomorrow or adjust your alerts.",
+      "initialFetchError": "An error occurred during search. Please try again later.",
+      "triggerFetch": "Run a search"
     },
     "alerts": {
       "title": "My alerts",
@@ -606,7 +612,7 @@
       "updateFailed": "Failed to update alert",
       "deleted": "Alert deleted",
       "deleteFailed": "Failed to delete alert",
-      "cronInfo": "Offers are fetched automatically every day at 9am (Paris time)"
+      "cronInfo": "Offers are fetched automatically every day at 8:30am (Paris time). A first scan runs immediately when you create an alert."
     },
     "sources": {
       "remotive": "Remotive",

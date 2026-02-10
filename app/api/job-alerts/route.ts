@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ApiResponse, getAuthenticatedSession } from "@/lib/api-utils";
 import { ALL_SOURCES } from "@/lib/job-sources";
+import { runFetchForAlerts } from "@/lib/job-fetch-runner";
 
 // GET /api/job-alerts — List all job alerts for the authenticated user
 export async function GET() {
@@ -28,7 +29,7 @@ export async function GET() {
   }
 }
 
-// POST /api/job-alerts — Create a new job alert
+// POST /api/job-alerts — Create a new job alert + trigger initial fetch
 export async function POST(request: NextRequest) {
   try {
     const session = await getAuthenticatedSession();
@@ -60,6 +61,21 @@ export async function POST(request: NextRequest) {
         isActive: body.isActive !== false,
       },
     });
+
+    // Fire-and-forget: trigger initial fetch for this new alert
+    // This runs in the background so the API responds immediately
+    if (alert.isActive) {
+      runFetchForAlerts([alert], session.user.id)
+        .then((result) => {
+          const alertResult = result.alerts[0];
+          console.log(
+            `[JobAlerts] Initial fetch for "${alert.name}": ${result.totalJobsFetched} jobs fetched, ${alertResult?.jobsMatched || 0} matched`
+          );
+        })
+        .catch((error) => {
+          console.error(`[JobAlerts] Initial fetch error for "${alert.name}":`, error);
+        });
+    }
 
     return ApiResponse.created(alert);
   } catch (error) {

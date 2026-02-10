@@ -550,7 +550,7 @@
     },
     "offers": {
       "empty": "Aucune offre pour le moment",
-      "emptyDesc": "Créez une alerte avec vos mots-clés pour recevoir des offres chaque matin à 9h",
+      "emptyDesc": "Créez une alerte avec vos mots-clés pour recevoir des offres chaque matin à 8h30",
       "new": "Nouvelles",
       "saved": "Sauvegardées",
       "dismissed": "Ignorées",
@@ -572,7 +572,13 @@
       "tags": "Tags",
       "matchedBy": "Alerte",
       "noEmail": "Pas d'email",
-      "autoApplyFuture": "La postulation automatique sera disponible dans une future mise à jour"
+      "autoApplyFuture": "La postulation automatique sera disponible dans une future mise à jour",
+      "initialFetchTitle": "Recherche en cours...",
+      "initialFetchDesc": "Nous parcourons les sources pour trouver des offres correspondant à vos alertes. Cela peut prendre quelques secondes.",
+      "initialFetchDone": "Recherche terminée ! {count} offres trouvées.",
+      "initialFetchEmpty": "Aucune offre récente ne correspond à vos mots-clés. Réessayez demain ou ajustez vos alertes.",
+      "initialFetchError": "Une erreur est survenue lors de la recherche. Réessayez plus tard.",
+      "triggerFetch": "Lancer une recherche"
     },
     "alerts": {
       "title": "Mes alertes",
@@ -606,7 +612,7 @@
       "updateFailed": "Échec de la mise à jour",
       "deleted": "Alerte supprimée",
       "deleteFailed": "Échec de la suppression",
-      "cronInfo": "Les offres sont récupérées automatiquement chaque jour à 9h (heure de Paris)"
+      "cronInfo": "Les offres sont récupérées automatiquement chaque jour à 8h30 (heure de Paris). Un premier scan est lancé dès la création d'une alerte."
     },
     "sources": {
       "remotive": "Remotive",

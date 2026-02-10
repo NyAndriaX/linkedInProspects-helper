@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Button,
   Typography,
@@ -127,6 +127,14 @@ export default function JobsPage() {
   const [editingAlert, setEditingAlert] = useState<JobAlert | null>(null);
   const [alertForm] = Form.useForm();
 
+  // Initial fetch state — triggered when alerts exist but no offers found
+  const [initialFetchStatus, setInitialFetchStatus] = useState<
+    "idle" | "fetching" | "done" | "empty" | "error"
+  >("idle");
+  const [initialFetchCount, setInitialFetchCount] = useState(0);
+  // Ref to prevent double-triggering the initial fetch
+  const initialFetchTriggeredRef = React.useRef(false);
+
   // ── Fetch offers ──
   const fetchOffers = useCallback(
     async (status = "new") => {
@@ -164,10 +172,48 @@ export default function JobsPage() {
     }
   }, []);
 
+  // ── Trigger initial fetch (when alerts exist but 0 matches) ──
+  const triggerInitialFetch = useCallback(async () => {
+    if (initialFetchTriggeredRef.current) return;
+    initialFetchTriggeredRef.current = true;
+    setInitialFetchStatus("fetching");
+    try {
+      const res = await fetch("/api/job-alerts/trigger", { method: "POST" });
+      if (!res.ok) throw new Error("Trigger failed");
+      const data = await res.json();
+      const totalMatched = (data.alerts || []).reduce(
+        (sum: number, a: { jobsMatched?: number }) => sum + (a.jobsMatched || 0),
+        0
+      );
+      setInitialFetchCount(totalMatched);
+      setInitialFetchStatus(totalMatched > 0 ? "done" : "empty");
+      // Refresh offers list to show newly matched jobs
+      if (totalMatched > 0) {
+        await fetchOffers(statusFilter);
+        await fetchAlerts();
+      }
+    } catch {
+      setInitialFetchStatus("error");
+    }
+  }, [fetchOffers, fetchAlerts, statusFilter]);
+
   useEffect(() => {
     fetchOffers(statusFilter);
     fetchAlerts();
   }, [fetchOffers, fetchAlerts, statusFilter]);
+
+  // Auto-trigger initial fetch when user has active alerts but 0 total matches
+  useEffect(() => {
+    if (alertsLoading || offersLoading) return;
+    if (initialFetchTriggeredRef.current) return;
+
+    const hasActiveAlerts = alerts.some((a) => a.isActive);
+    const totalMatches = alerts.reduce((sum, a) => sum + (a._count?.matches || 0), 0);
+
+    if (hasActiveAlerts && totalMatches === 0) {
+      triggerInitialFetch();
+    }
+  }, [alerts, alertsLoading, offersLoading, triggerInitialFetch]);
 
   // ── Update match status ──
   const updateMatchStatus = async (matchId: string, newStatus: string) => {
@@ -208,6 +254,7 @@ export default function JobsPage() {
   // ── Create/update alert ──
   const handleAlertSubmit = async (values: Record<string, unknown>) => {
     try {
+      const isCreating = !editingAlert;
       const url = editingAlert
         ? `/api/job-alerts/${editingAlert.id}`
         : "/api/job-alerts";
@@ -227,7 +274,39 @@ export default function JobsPage() {
       setAlertModalOpen(false);
       setEditingAlert(null);
       alertForm.resetFields();
-      fetchAlerts();
+      await fetchAlerts();
+
+      // On new alert creation: switch to offers tab and show fetching state
+      // The API already fires an initial fetch in the background; we poll for results
+      if (isCreating && values.isActive !== false) {
+        setActiveTab("offers");
+        setInitialFetchStatus("fetching");
+        initialFetchTriggeredRef.current = true;
+
+        // Wait for the background fetch to complete (poll every 3s, max 30s)
+        let attempts = 0;
+        const maxAttempts = 10;
+        const poll = async () => {
+          while (attempts < maxAttempts) {
+            attempts++;
+            await new Promise((resolve) => setTimeout(resolve, 3000));
+            const offersRes = await fetch(`/api/job-listings?status=all&limit=1`);
+            if (offersRes.ok) {
+              const offersData: ListingsResponse = await offersRes.json();
+              if (offersData.total > 0) {
+                setInitialFetchCount(offersData.total);
+                setInitialFetchStatus("done");
+                await fetchOffers(statusFilter);
+                await fetchAlerts();
+                return;
+              }
+            }
+          }
+          // After max attempts, check if we just have no matches
+          setInitialFetchStatus("empty");
+        };
+        poll().catch(() => setInitialFetchStatus("error"));
+      }
     } catch {
       messageApi.error(
         editingAlert ? t("alerts.updateFailed") : t("alerts.createFailed")
@@ -405,7 +484,121 @@ export default function JobsPage() {
                 />
               ))}
             </div>
+          ) : initialFetchStatus === "fetching" ? (
+            /* ── Initial fetch in progress ── */
+            <div
+              className="rounded-xl p-10 text-center"
+              style={{ background: "#fafbfc", border: "1px solid #e5e7eb" }}
+            >
+              <div className="mb-4">
+                <Spin
+                  indicator={
+                    <LoadingOutlined
+                      style={{ fontSize: 40, color: "#6366f1" }}
+                      spin
+                    />
+                  }
+                />
+              </div>
+              <Text strong style={{ fontSize: 16, display: "block", marginBottom: 6 }}>
+                {t("offers.initialFetchTitle")}
+              </Text>
+              <Text type="secondary" style={{ fontSize: 13, maxWidth: 400, display: "inline-block" }}>
+                {t("offers.initialFetchDesc")}
+              </Text>
+              <div className="mt-4 flex justify-center gap-1">
+                {ALL_SOURCES.map((src) => (
+                  <Tag
+                    key={src}
+                    style={{
+                      borderRadius: 8,
+                      fontSize: 10,
+                      color: SOURCE_COLORS[src],
+                      borderColor: SOURCE_COLORS[src],
+                      background: "transparent",
+                      animation: "pulse-badge 1.5s ease-in-out infinite",
+                    }}
+                  >
+                    {src}
+                  </Tag>
+                ))}
+              </div>
+            </div>
+          ) : initialFetchStatus === "done" ? (
+            /* ── Initial fetch done, but current filter shows 0 ── */
+            <div
+              className="rounded-xl p-8 text-center"
+              style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}
+            >
+              <CheckCircleOutlined style={{ fontSize: 36, color: "#16a34a", marginBottom: 12 }} />
+              <Text strong style={{ fontSize: 15, display: "block", marginBottom: 4 }}>
+                {t("offers.initialFetchDone", { count: initialFetchCount })}
+              </Text>
+              <Button
+                type="primary"
+                size="small"
+                onClick={() => { setStatusFilter("all"); fetchOffers("all"); }}
+                style={{
+                  marginTop: 12,
+                  borderRadius: 8,
+                  background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+                  border: "none",
+                  fontWeight: 600,
+                }}
+              >
+                {t("offers.all")}
+              </Button>
+            </div>
+          ) : initialFetchStatus === "empty" ? (
+            /* ── Initial fetch done but no matches ── */
+            <div
+              className="rounded-xl p-8 text-center"
+              style={{ background: "#fffbeb", border: "1px solid #fde68a" }}
+            >
+              <ExclamationCircleOutlined style={{ fontSize: 36, color: "#f59e0b", marginBottom: 12 }} />
+              <Text strong style={{ fontSize: 15, display: "block", marginBottom: 4 }}>
+                {t("offers.initialFetchEmpty")}
+              </Text>
+              <Button
+                type="default"
+                size="small"
+                icon={<ReloadOutlined />}
+                onClick={() => {
+                  initialFetchTriggeredRef.current = false;
+                  setInitialFetchStatus("idle");
+                  triggerInitialFetch();
+                }}
+                style={{ marginTop: 12, borderRadius: 8, fontWeight: 600 }}
+              >
+                {t("offers.triggerFetch")}
+              </Button>
+            </div>
+          ) : initialFetchStatus === "error" ? (
+            /* ── Initial fetch error ── */
+            <div
+              className="rounded-xl p-8 text-center"
+              style={{ background: "#fef2f2", border: "1px solid #fecaca" }}
+            >
+              <CloseCircleOutlined style={{ fontSize: 36, color: "#ef4444", marginBottom: 12 }} />
+              <Text strong style={{ fontSize: 15, display: "block", marginBottom: 4, color: "#dc2626" }}>
+                {t("offers.initialFetchError")}
+              </Text>
+              <Button
+                type="default"
+                size="small"
+                icon={<ReloadOutlined />}
+                onClick={() => {
+                  initialFetchTriggeredRef.current = false;
+                  setInitialFetchStatus("idle");
+                  triggerInitialFetch();
+                }}
+                style={{ marginTop: 12, borderRadius: 8, fontWeight: 600 }}
+              >
+                {t("offers.triggerFetch")}
+              </Button>
+            </div>
           ) : (
+            /* ── Default empty state (no alerts) ── */
             <div
               className="rounded-xl p-8 text-center"
               style={{ background: "#fafbfc", border: "1px solid #e5e7eb" }}
@@ -423,7 +616,7 @@ export default function JobsPage() {
                   </div>
                 }
               />
-              {alerts.length === 0 && (
+              {alerts.length === 0 ? (
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
@@ -440,6 +633,25 @@ export default function JobsPage() {
                   }}
                 >
                   {t("alerts.create")}
+                </Button>
+              ) : (
+                <Button
+                  type="primary"
+                  icon={<ReloadOutlined />}
+                  onClick={() => {
+                    initialFetchTriggeredRef.current = false;
+                    setInitialFetchStatus("idle");
+                    triggerInitialFetch();
+                  }}
+                  style={{
+                    marginTop: 16,
+                    borderRadius: 8,
+                    background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+                    border: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  {t("offers.triggerFetch")}
                 </Button>
               )}
             </div>
