@@ -38,6 +38,8 @@ import {
   TagOutlined,
   ExclamationCircleOutlined,
   ReloadOutlined,
+  GlobalOutlined,
+  BellOutlined,
 } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -94,6 +96,29 @@ interface ListingsResponse {
   counts: Record<string, number>;
 }
 
+interface SearchResultJob {
+  externalId: string;
+  source: string;
+  title: string;
+  company: string | null;
+  description: string | null;
+  url: string;
+  contactEmail: string | null;
+  location: string | null;
+  salary: string | null;
+  tags: string[];
+  publishedAt: string;
+}
+
+interface SearchResponse {
+  results: SearchResultJob[];
+  total: number;
+  totalFetched: number;
+  freshness: string;
+  sources: string[];
+  keywords: string[];
+}
+
 // ── Constants ──
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -105,6 +130,8 @@ const SOURCE_COLORS: Record<string, string> = {
 };
 
 const ALL_SOURCES = ["remotive", "jobicy", "arbeitnow", "reddit", "hackernews"];
+
+const FRESHNESS_OPTIONS = ["24h", "3d", "7d", "30d", "all"] as const;
 
 // ── Page ──
 
@@ -134,6 +161,15 @@ export default function JobsPage() {
   const [initialFetchCount, setInitialFetchCount] = useState(0);
   // Ref to prevent double-triggering the initial fetch
   const initialFetchTriggeredRef = React.useRef(false);
+
+  // Search state
+  const [searchKeywords, setSearchKeywords] = useState<string[]>([]);
+  const [searchSources, setSearchSources] = useState<string[]>(ALL_SOURCES);
+  const [searchFreshness, setSearchFreshness] = useState<string>("7d");
+  const [searchResults, setSearchResults] = useState<SearchResponse | null>(null);
+  const [searchStatus, setSearchStatus] = useState<
+    "idle" | "searching" | "done" | "error"
+  >("idle");
 
   // ── Fetch offers ──
   const fetchOffers = useCallback(
@@ -214,6 +250,34 @@ export default function JobsPage() {
       triggerInitialFetch();
     }
   }, [alerts, alertsLoading, offersLoading, triggerInitialFetch]);
+
+  // ── On-demand search ──
+  const handleSearch = useCallback(async () => {
+    if (searchKeywords.length === 0) {
+      messageApi.warning(t("alerts.keywordsRequired"));
+      return;
+    }
+    setSearchStatus("searching");
+    setSearchResults(null);
+    try {
+      const res = await fetch("/api/job-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          keywords: searchKeywords,
+          sources: searchSources,
+          freshness: searchFreshness,
+          excludeKeywords: [],
+        }),
+      });
+      if (!res.ok) throw new Error("Search failed");
+      const data: SearchResponse = await res.json();
+      setSearchResults(data);
+      setSearchStatus("done");
+    } catch {
+      setSearchStatus("error");
+    }
+  }, [searchKeywords, searchSources, searchFreshness, messageApi, t]);
 
   // ── Update match status ──
   const updateMatchStatus = async (matchId: string, newStatus: string) => {
@@ -397,7 +461,7 @@ export default function JobsPage() {
               {
                 label: (
                   <span className="flex items-center gap-1.5 px-1">
-                    <SearchOutlined />
+                    <BellOutlined />
                     {t("tabs.offers")}
                     {totalNew > 0 && (
                       <Badge
@@ -409,6 +473,15 @@ export default function JobsPage() {
                   </span>
                 ),
                 value: "offers",
+              },
+              {
+                label: (
+                  <span className="flex items-center gap-1.5 px-1">
+                    <GlobalOutlined />
+                    {t("search.tab")}
+                  </span>
+                ),
+                value: "search",
               },
               {
                 label: (
@@ -667,6 +740,208 @@ export default function JobsPage() {
               {t("offers.autoApplyFuture")}
             </Text>
           </div>
+        </div>
+
+        {/* ━━━ TAB: SEARCH ━━━ */}
+        <div style={{ display: activeTab === "search" ? "block" : "none" }}>
+          {/* Search bar + filters */}
+          <div
+            className="rounded-xl p-4 mb-4 space-y-3"
+            style={{ background: "#fff", border: "1px solid #e5e7eb" }}
+          >
+            {/* Keywords input */}
+            <div>
+              <Select
+                mode="tags"
+                value={searchKeywords}
+                onChange={setSearchKeywords}
+                placeholder={t("search.placeholder")}
+                style={{ width: "100%", borderRadius: 8 }}
+                size="large"
+                tokenSeparators={[","]}
+                suffixIcon={<SearchOutlined />}
+                onInputKeyDown={(e) => {
+                  if (e.key === "Enter" && searchKeywords.length > 0) {
+                    handleSearch();
+                  }
+                }}
+              />
+            </div>
+
+            {/* Filters row */}
+            <div className="flex items-center gap-4 flex-wrap">
+              {/* Freshness filter */}
+              <div className="flex items-center gap-2">
+                <Text type="secondary" style={{ fontSize: 12, whiteSpace: "nowrap" }}>
+                  <ClockCircleOutlined style={{ marginRight: 4 }} />
+                  {t("search.freshness")}
+                </Text>
+                <Segmented
+                  size="small"
+                  value={searchFreshness}
+                  onChange={(val) => setSearchFreshness(val as string)}
+                  options={FRESHNESS_OPTIONS.map((key) => ({
+                    label: t(`search.freshnessOptions.${key}`),
+                    value: key,
+                  }))}
+                  style={{ borderRadius: 6 }}
+                />
+              </div>
+
+              {/* Source filter */}
+              <div className="flex items-center gap-2">
+                <Text type="secondary" style={{ fontSize: 12, whiteSpace: "nowrap" }}>
+                  {t("search.sourcesLabel")}
+                </Text>
+                <Select
+                  mode="multiple"
+                  size="small"
+                  value={searchSources}
+                  onChange={setSearchSources}
+                  style={{ minWidth: 200, borderRadius: 6 }}
+                  maxTagCount={2}
+                  placeholder={t("search.allSources")}
+                  options={ALL_SOURCES.map((s) => ({
+                    value: s,
+                    label: (
+                      <span style={{ color: SOURCE_COLORS[s], fontWeight: 500, fontSize: 12 }}>
+                        {t(`sources.${s}`)}
+                      </span>
+                    ),
+                  }))}
+                />
+              </div>
+
+              {/* Search button */}
+              <Button
+                type="primary"
+                icon={searchStatus === "searching" ? <LoadingOutlined /> : <SearchOutlined />}
+                onClick={handleSearch}
+                loading={searchStatus === "searching"}
+                disabled={searchKeywords.length === 0}
+                style={{
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  background: searchKeywords.length > 0
+                    ? "linear-gradient(135deg, #6366f1, #4f46e5)"
+                    : undefined,
+                  border: "none",
+                  marginLeft: "auto",
+                }}
+              >
+                {t("search.button")}
+              </Button>
+            </div>
+          </div>
+
+          {/* Search results */}
+          {searchStatus === "idle" ? (
+            <div
+              className="rounded-xl p-10 text-center"
+              style={{ background: "#fafbfc", border: "1px solid #e5e7eb" }}
+            >
+              <SearchOutlined style={{ fontSize: 36, color: "#d1d5db", marginBottom: 12 }} />
+              <Text strong style={{ fontSize: 15, display: "block", marginBottom: 4, color: "#6b7280" }}>
+                {t("search.idle")}
+              </Text>
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                {t("search.idleDesc")}
+              </Text>
+            </div>
+          ) : searchStatus === "searching" ? (
+            <div
+              className="rounded-xl p-10 text-center"
+              style={{ background: "#fafbfc", border: "1px solid #e5e7eb" }}
+            >
+              <Spin
+                indicator={<LoadingOutlined style={{ fontSize: 40, color: "#6366f1" }} spin />}
+              />
+              <Text strong style={{ fontSize: 15, display: "block", marginTop: 16, marginBottom: 4 }}>
+                {t("search.searching")}
+              </Text>
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                {t("search.searchingDesc")}
+              </Text>
+              <div className="mt-4 flex justify-center gap-1">
+                {searchSources.map((src) => (
+                  <Tag
+                    key={src}
+                    style={{
+                      borderRadius: 8,
+                      fontSize: 10,
+                      color: SOURCE_COLORS[src],
+                      borderColor: SOURCE_COLORS[src],
+                      background: "transparent",
+                    }}
+                  >
+                    {src}
+                  </Tag>
+                ))}
+              </div>
+            </div>
+          ) : searchStatus === "error" ? (
+            <div
+              className="rounded-xl p-8 text-center"
+              style={{ background: "#fef2f2", border: "1px solid #fecaca" }}
+            >
+              <CloseCircleOutlined style={{ fontSize: 36, color: "#ef4444", marginBottom: 12 }} />
+              <Text strong style={{ fontSize: 15, display: "block", marginBottom: 4, color: "#dc2626" }}>
+                {t("search.error")}
+              </Text>
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                {t("search.errorDesc")}
+              </Text>
+              <Button
+                type="default"
+                size="small"
+                icon={<ReloadOutlined />}
+                onClick={handleSearch}
+                style={{ marginTop: 12, borderRadius: 8, fontWeight: 600 }}
+              >
+                {t("search.button")}
+              </Button>
+            </div>
+          ) : searchResults && searchResults.results.length > 0 ? (
+            <>
+              {/* Result count banner */}
+              <div
+                className="mb-3 rounded-lg px-4 py-2 flex items-center gap-2"
+                style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}
+              >
+                <CheckCircleOutlined style={{ color: "#16a34a", fontSize: 13 }} />
+                <Text style={{ fontSize: 12, color: "#166534" }}>
+                  {t("search.results", {
+                    count: searchResults.total,
+                    total: searchResults.totalFetched,
+                  })}
+                </Text>
+              </div>
+
+              <div className="space-y-3">
+                {searchResults.results.map((job) => (
+                  <SearchResultCard
+                    key={job.externalId}
+                    job={job}
+                    t={t}
+                    messageApi={messageApi}
+                  />
+                ))}
+              </div>
+            </>
+          ) : searchResults && searchResults.results.length === 0 ? (
+            <div
+              className="rounded-xl p-8 text-center"
+              style={{ background: "#fffbeb", border: "1px solid #fde68a" }}
+            >
+              <ExclamationCircleOutlined style={{ fontSize: 36, color: "#f59e0b", marginBottom: 12 }} />
+              <Text strong style={{ fontSize: 15, display: "block", marginBottom: 4 }}>
+                {t("search.noResults")}
+              </Text>
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                {t("search.noResultsDesc")}
+              </Text>
+            </div>
+          ) : null}
         </div>
 
         {/* ━━━ TAB: ALERTS ━━━ */}
@@ -1206,6 +1481,200 @@ function JobCard({
         )}
 
         {match.status === "added_to_crm" && (
+          <Tag
+            color="green"
+            style={{ borderRadius: 10, fontSize: 11, marginLeft: "auto" }}
+          >
+            <CheckCircleOutlined /> CRM
+          </Tag>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Search Result Card Component (for on-demand search) ──
+
+function SearchResultCard({
+  job,
+  t,
+  messageApi,
+}: {
+  job: SearchResultJob;
+  t: ReturnType<typeof useTranslations>;
+  messageApi: ReturnType<typeof message.useMessage>[0];
+}) {
+  const sourceColor = SOURCE_COLORS[job.source] || "#6b7280";
+  const [addingToCrm, setAddingToCrm] = useState(false);
+  const [addedToCrm, setAddedToCrm] = useState(false);
+
+  const handleAddToCrm = async () => {
+    setAddingToCrm(true);
+    try {
+      // First, upsert the job listing to DB so we can create a prospect
+      const upsertRes = await fetch("/api/job-search/to-prospect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          externalId: job.externalId,
+          source: job.source,
+          title: job.title,
+          company: job.company,
+          url: job.url,
+          contactEmail: job.contactEmail,
+          location: job.location,
+        }),
+      });
+      if (!upsertRes.ok) throw new Error("Failed");
+      messageApi.success(t("offers.addedToCrmSuccess"));
+      setAddedToCrm(true);
+    } catch {
+      messageApi.error(t("offers.addedToCrmFailed"));
+    } finally {
+      setAddingToCrm(false);
+    }
+  };
+
+  return (
+    <div
+      className="rounded-xl p-4"
+      style={{ background: "#fff", border: "1px solid #e5e7eb" }}
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div className="flex-1 min-w-0">
+          <a
+            href={job.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="no-underline"
+          >
+            <Text
+              strong
+              style={{ fontSize: 14, color: "#111827", cursor: "pointer" }}
+              className="hover:underline"
+            >
+              {job.title}
+            </Text>
+          </a>
+          {job.company && (
+            <Text
+              type="secondary"
+              style={{ fontSize: 12, display: "block", marginTop: 2 }}
+            >
+              {job.company}
+            </Text>
+          )}
+        </div>
+        <Tag
+          style={{
+            borderRadius: 10,
+            fontSize: 10,
+            fontWeight: 600,
+            color: sourceColor,
+            borderColor: sourceColor,
+            background: "transparent",
+            margin: 0,
+          }}
+        >
+          {job.source}
+        </Tag>
+      </div>
+
+      {/* Description excerpt */}
+      {job.description && (
+        <Paragraph
+          type="secondary"
+          style={{ fontSize: 12, marginBottom: 8, lineHeight: 1.5 }}
+          ellipsis={{ rows: 2 }}
+        >
+          {job.description}
+        </Paragraph>
+      )}
+
+      {/* Meta row */}
+      <div className="flex items-center gap-3 flex-wrap mb-3">
+        {job.location && (
+          <span className="flex items-center gap-1 text-xs text-gray-500">
+            <EnvironmentOutlined style={{ fontSize: 11 }} />
+            {job.location}
+          </span>
+        )}
+        {job.salary && (
+          <span className="flex items-center gap-1 text-xs text-gray-500">
+            <DollarOutlined style={{ fontSize: 11 }} />
+            {job.salary}
+          </span>
+        )}
+        {job.contactEmail && (
+          <span className="flex items-center gap-1 text-xs text-green-600">
+            <MailOutlined style={{ fontSize: 11 }} />
+            {job.contactEmail}
+          </span>
+        )}
+        <span className="flex items-center gap-1 text-xs text-gray-400">
+          <ClockCircleOutlined style={{ fontSize: 11 }} />
+          {new Date(job.publishedAt).toLocaleDateString("fr-FR", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })}
+        </span>
+      </div>
+
+      {/* Tags */}
+      {job.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {job.tags.slice(0, 6).map((tag, i) => (
+            <Tag
+              key={i}
+              style={{ borderRadius: 10, fontSize: 10, margin: 0 }}
+            >
+              {tag}
+            </Tag>
+          ))}
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex items-center gap-2 pt-2" style={{ borderTop: "1px solid #f3f4f6" }}>
+        <a href={job.url} target="_blank" rel="noopener noreferrer">
+          <Button
+            size="small"
+            type="primary"
+            icon={<LinkOutlined />}
+            style={{
+              borderRadius: 6,
+              fontSize: 11,
+              fontWeight: 600,
+              background: "linear-gradient(135deg, #6366f1, #4f46e5)",
+              border: "none",
+              height: 28,
+            }}
+          >
+            {t("search.viewOffer")}
+          </Button>
+        </a>
+
+        {!addedToCrm ? (
+          <Button
+            size="small"
+            icon={<TeamOutlined />}
+            onClick={handleAddToCrm}
+            loading={addingToCrm}
+            style={{
+              borderRadius: 6,
+              fontSize: 11,
+              height: 28,
+              fontWeight: 500,
+              marginLeft: "auto",
+              color: "#6366f1",
+              borderColor: "#6366f1",
+            }}
+          >
+            {t("search.addToCrm")}
+          </Button>
+        ) : (
           <Tag
             color="green"
             style={{ borderRadius: 10, fontSize: 11, marginLeft: "auto" }}

@@ -614,6 +614,32 @@
       "deleteFailed": "Failed to delete alert",
       "cronInfo": "Offers are fetched automatically every day at 8:30am (Paris time). A first scan runs immediately when you create an alert."
     },
+    "search": {
+      "tab": "Search",
+      "placeholder": "Type your keywords and press Enter...",
+      "button": "Search",
+      "freshness": "Time range",
+      "freshnessOptions": {
+        "24h": "24 hours",
+        "3d": "3 days",
+        "7d": "This week",
+        "30d": "This month",
+        "all": "All time"
+      },
+      "sourcesLabel": "Sources",
+      "allSources": "All sources",
+      "results": "{count} result(s) found from {total} offers scanned",
+      "noResults": "No offers match your keywords",
+      "noResultsDesc": "Try broadening your criteria or changing the time range",
+      "idle": "Start a search",
+      "idleDesc": "Enter keywords to search for offers in real-time across all sources",
+      "searching": "Searching...",
+      "searchingDesc": "Querying sources to find matching offers",
+      "error": "Search error",
+      "errorDesc": "Please try again in a few moments",
+      "viewOffer": "View offer",
+      "addToCrm": "Add to CRM"
+    },
     "sources": {
       "remotive": "Remotive",
       "jobicy": "Jobicy",

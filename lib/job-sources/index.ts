@@ -106,3 +106,89 @@ export async function fetchAllJobs(
   );
   return allJobs;
 }
+
+/**
+ * Freshness presets for the on-demand search feature.
+ * Maps user-friendly keys to hours.
+ */
+export const FRESHNESS_PRESETS: Record<string, number | null> = {
+  "24h": 24,
+  "3d": 72,
+  "7d": 168,
+  "30d": 720,
+  all: null, // No freshness filter
+};
+
+/**
+ * Search jobs on-demand across sources.
+ *
+ * Unlike fetchAllJobs(), this function:
+ *  - Uses a configurable freshness window (not fixed 24h)
+ *  - Does NOT cap results per source (returns everything available)
+ *  - Is designed for user-initiated real-time search
+ *
+ * @param sources - Which sources to query (defaults to all)
+ * @param freshnessHours - Max age in hours, or null for no filter
+ */
+export async function searchJobs(
+  sources?: string[],
+  freshnessHours?: number | null
+): Promise<NormalizedJob[]> {
+  const activeSources = sources || ALL_SOURCES;
+  const fetchers = activeSources
+    .filter((s) => SOURCE_FETCHERS[s])
+    .map((s) => ({ source: s, fn: SOURCE_FETCHERS[s] }));
+
+  console.log(
+    `[JobSearch] Searching ${activeSources.length} sources: ${activeSources.join(", ")} (freshness: ${freshnessHours ? `${freshnessHours}h` : "all"})`
+  );
+
+  const results = await Promise.allSettled(
+    fetchers.map(async ({ source, fn }) => {
+      const jobs = await fn();
+      return { source, jobs };
+    })
+  );
+
+  const allJobs: NormalizedJob[] = [];
+  const seenIds = new Set<string>();
+
+  for (const result of results) {
+    if (result.status !== "fulfilled") {
+      console.error("[JobSearch] Source failed:", result.reason);
+      continue;
+    }
+
+    const { source, jobs } = result.value;
+
+    // Apply freshness filter only if a value is provided
+    const filtered =
+      freshnessHours != null
+        ? jobs.filter((j) => isFresh(j, freshnessHours))
+        : jobs;
+
+    // Sort by newest first
+    filtered.sort(
+      (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()
+    );
+
+    console.log(
+      `[JobSearch] ${source}: ${jobs.length} fetched -> ${filtered.length} within window`
+    );
+
+    for (const job of filtered) {
+      if (!seenIds.has(job.externalId)) {
+        seenIds.add(job.externalId);
+        allJobs.push(job);
+      }
+    }
+  }
+
+  // Final sort: newest first across all sources
+  allJobs.sort(
+    (a, b) => b.publishedAt.getTime() - a.publishedAt.getTime()
+  );
+
+  console.log(`[JobSearch] Total: ${allJobs.length} unique jobs found`);
+  return allJobs;
+}

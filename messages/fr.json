@@ -614,6 +614,32 @@
       "deleteFailed": "Échec de la suppression",
       "cronInfo": "Les offres sont récupérées automatiquement chaque jour à 8h30 (heure de Paris). Un premier scan est lancé dès la création d'une alerte."
     },
+    "search": {
+      "tab": "Recherche",
+      "placeholder": "Tapez vos mots-clés et appuyez sur Entrée...",
+      "button": "Rechercher",
+      "freshness": "Période",
+      "freshnessOptions": {
+        "24h": "24 heures",
+        "3d": "3 jours",
+        "7d": "Cette semaine",
+        "30d": "Ce mois",
+        "all": "Tout"
+      },
+      "sourcesLabel": "Sources",
+      "allSources": "Toutes les sources",
+      "results": "{count} résultat(s) trouvé(s) sur {total} offres scannées",
+      "noResults": "Aucune offre ne correspond à vos mots-clés",
+      "noResultsDesc": "Essayez d'élargir vos critères ou de changer la période",
+      "idle": "Lancez une recherche",
+      "idleDesc": "Saisissez des mots-clés pour chercher des offres en temps réel dans toutes les sources",
+      "searching": "Recherche en cours...",
+      "searchingDesc": "Nous interrogeons les sources pour trouver des offres correspondantes",
+      "error": "Erreur lors de la recherche",
+      "errorDesc": "Réessayez dans quelques instants",
+      "viewOffer": "Voir l'offre",
+      "addToCrm": "Ajouter au CRM"
+    },
     "sources": {
       "remotive": "Remotive",
       "jobicy": "Jobicy",
