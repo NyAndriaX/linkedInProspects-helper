@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -16,6 +16,54 @@ const ALLOWED_MIME_TYPES: Record<string, string> = {
   "image/webp": "webp",
   "image/gif": "gif",
 };
+
+const MIME_BY_EXTENSION: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+};
+
+function buildSafeUploadPath(relativeImagePath: string): string | null {
+  const normalizedPath = relativeImagePath.replace(/^\/+/, "");
+  if (!normalizedPath.startsWith("posts/")) return null;
+
+  const resolvedPath = path.resolve(process.cwd(), "public", "uploads", normalizedPath);
+  const uploadsRoot = path.resolve(process.cwd(), "public", "uploads", "posts");
+
+  if (!resolvedPath.startsWith(uploadsRoot)) return null;
+  return resolvedPath;
+}
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const relativeImagePath = searchParams.get("path");
+    if (!relativeImagePath) {
+      return NextResponse.json({ error: "Missing image path" }, { status: 400 });
+    }
+
+    const imagePath = buildSafeUploadPath(relativeImagePath);
+    if (!imagePath) {
+      return NextResponse.json({ error: "Invalid image path" }, { status: 400 });
+    }
+
+    const imageBuffer = await readFile(imagePath);
+    const extension = path.extname(imagePath).replace(".", "").toLowerCase();
+    const mimeType = MIME_BY_EXTENSION[extension] || "application/octet-stream";
+
+    return new NextResponse(imageBuffer, {
+      status: 200,
+      headers: {
+        "Content-Type": mimeType,
+        "Cache-Control": "public, max-age=31536000, immutable",
+      },
+    });
+  } catch {
+    return NextResponse.json({ error: "Image not found" }, { status: 404 });
+  }
+}
 
 export async function POST(request: Request) {
   try {

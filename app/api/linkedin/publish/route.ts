@@ -9,6 +9,7 @@ import {
   prepareLinkedInImage,
   handleLinkedInError,
 } from "@/lib/linkedin";
+import { toAbsolutePostImageUrl } from "@/lib/post-image-url";
 
 interface PublishRequest {
   content: string;
@@ -60,9 +61,10 @@ export async function POST(request: NextRequest) {
     // If there's an image, upload it to LinkedIn first
     let postBody;
     if (imageUrl) {
-      const normalizedImageUrl = /^https?:\/\//i.test(imageUrl)
-        ? imageUrl
-        : new URL(imageUrl, request.nextUrl.origin).toString();
+      const normalizedImageUrl = toAbsolutePostImageUrl(
+        imageUrl,
+        request.nextUrl.origin
+      );
       const imageAsset = await prepareLinkedInImage(
         normalizedImageUrl,
         session.linkedInId,

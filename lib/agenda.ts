@@ -1,5 +1,6 @@
 import { Agenda, Job } from "@hokify/agenda";
 import { prisma } from "./prisma";
+import { toAbsolutePostImageUrl } from "./post-image-url";
 
 // Agenda instance (singleton)
 let agendaInstance: Agenda | null = null;
@@ -103,12 +104,10 @@ export async function getAgenda(): Promise<Agenda> {
         // If post has an image, upload it to LinkedIn first
         let postBody;
         if (post.imageUrl) {
-          const normalizedImageUrl = /^https?:\/\//i.test(post.imageUrl)
-            ? post.imageUrl
-            : new URL(
-                post.imageUrl,
-                process.env.NEXTAUTH_URL || "http://localhost:3000"
-              ).toString();
+          const normalizedImageUrl = toAbsolutePostImageUrl(
+            post.imageUrl,
+            process.env.NEXTAUTH_URL || "http://localhost:3000"
+          );
           const imageAsset = await prepareLinkedInImage(
             normalizedImageUrl,
             user.linkedInId,

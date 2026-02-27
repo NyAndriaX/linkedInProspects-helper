@@ -42,6 +42,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { GeneratePostsModal } from "@/components/features/GeneratePostsModal";
 import { Post, PostStatus, PostFormData, postStatusConfig } from "@/types/post";
 import { Link } from "@/i18n/routing";
+import { toPostImageProxyPath } from "@/lib/post-image-url";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -628,7 +629,7 @@ export default function PostsPage() {
                 <div className="mb-4 rounded-lg border border-gray-200 p-3 bg-gray-50">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={imageUrl}
+                    src={toPostImageProxyPath(imageUrl)}
                     alt="Post preview"
                     className="w-full object-cover rounded-md mb-2"
                     style={{ maxHeight: 220 }}
@@ -692,9 +693,10 @@ export default function PostsPage() {
         open={isViewModalOpen}
         onCancel={() => setIsViewModalOpen(false)}
         footer={null}
-        width={isMobile ? "95%" : 520}
+        width={isMobile ? "95%" : 620}
         centered
-        styles={{ body: { padding: 0 } }}
+        style={{ top: 20 }}
+        styles={{ body: { padding: 0, maxHeight: "85vh", overflowY: "auto" } }}
       >
         {viewingPost && (
           <div>
@@ -753,7 +755,7 @@ export default function PostsPage() {
               {viewingPost.imageUrl && (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
-                  src={viewingPost.imageUrl}
+                  src={toPostImageProxyPath(viewingPost.imageUrl)}
                   alt=""
                   className="w-full object-cover"
                   style={{ maxHeight: 260 }}
