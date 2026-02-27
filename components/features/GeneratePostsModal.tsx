@@ -402,7 +402,6 @@ export function GeneratePostsModal({
                     children: (
                       <div>
                         <Form.Item
-                          name="topic"
                           label={
                             <span className="font-medium">
                               {t("generate.topicLabel")}
@@ -415,17 +414,19 @@ export function GeneratePostsModal({
                           }
                         >
                           <div className="relative">
-                            <TextArea
-                              rows={2}
-                              placeholder={t("generate.topicPlaceholder")}
-                              maxLength={300}
-                              showCount
-                              style={{
-                                borderRadius: 8,
-                                paddingRight: 42,
-                                paddingBottom: 34,
-                              }}
-                            />
+                            <Form.Item name="topic" noStyle>
+                              <TextArea
+                                rows={2}
+                                placeholder={t("generate.topicPlaceholder")}
+                                maxLength={300}
+                                showCount
+                                style={{
+                                  borderRadius: 8,
+                                  paddingRight: 42,
+                                  paddingBottom: 34,
+                                }}
+                              />
+                            </Form.Item>
                             <Tooltip title={t("generate.suggestTopicTooltip")}>
                               <Button
                                 shape="circle"
