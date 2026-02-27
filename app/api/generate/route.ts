@@ -6,6 +6,8 @@ import { getGroqClient, GROQ_MODEL, buildPostGenerationPrompt, parseGeneratedPos
 interface GenerateRequest {
   count: number;
   topic?: string;
+  topicSource?: "auto" | "common";
+  selectedTheme?: string;
   toneOverride?: string;
   style?: string;
   preview?: boolean;
@@ -166,6 +168,8 @@ export async function POST(request: NextRequest) {
     const {
       count = 1,
       topic,
+      topicSource,
+      selectedTheme,
       toneOverride,
       style,
       preview = false,
@@ -247,6 +251,8 @@ export async function POST(request: NextRequest) {
     // Build generation options from request
     const generationOptions: GenerationOptions = {};
     if (topic) generationOptions.topic = topic;
+    if (topicSource) generationOptions.topicSource = topicSource;
+    if (selectedTheme) generationOptions.selectedTheme = selectedTheme;
     if (toneOverride) generationOptions.toneOverride = toneOverride;
     if (style) generationOptions.style = style;
     generationOptions.includeContactCta = includeContactCta;

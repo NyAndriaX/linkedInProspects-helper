@@ -843,6 +843,7 @@ export default function PostsPage() {
         onClose={() => setIsGenerateModalOpen(false)}
         onSaved={refetch}
         profileTone={profile.preferredTone}
+        profileIndustry={profile.industry}
         profileContact={{
           phone: profile.phone,
           githubUrl: profile.githubUrl,

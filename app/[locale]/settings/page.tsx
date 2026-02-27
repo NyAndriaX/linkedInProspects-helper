@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   Form,
@@ -39,13 +39,6 @@ import {
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
-// Industry keys for translation
-const industryKeys = [
-  "tech", "finance", "healthcare", "education", "marketing",
-  "consulting", "real_estate", "retail", "manufacturing", "legal",
-  "hr", "media", "nonprofit", "government", "startup", "other"
-] as const;
-
 // Content goal keys
 const contentGoalKeys: ContentGoal[] = [
   "thought_leadership", "lead_generation", "brand_awareness",
@@ -60,20 +53,16 @@ const toneKeys: ToneType[] = [
 
 export default function SettingsPage() {
   const t = useTranslations("settings");
-  const tIndustries = useTranslations("industries");
   const tGoals = useTranslations("contentGoals");
   const tTones = useTranslations("tones");
   
   const [form] = Form.useForm();
   const { profile, isLoading, isSaving, saveProfile, resetProfile } =
     useProfile();
+  const [industryOptions, setIndustryOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
   const [messageApi, contextHolder] = message.useMessage();
-
-  // Build translated options
-  const industryOptions = industryKeys.map((key) => ({
-    value: key,
-    label: tIndustries(key),
-  }));
 
   const contentGoalOptions = contentGoalKeys.map((key) => ({
     value: key,
@@ -92,6 +81,26 @@ export default function SettingsPage() {
       form.setFieldsValue(profile);
     }
   }, [profile, isLoading, form]);
+
+  useEffect(() => {
+    const loadIndustryOptions = async () => {
+      try {
+        const response = await fetch("/api/options/industries");
+        const data = await response.json();
+        if (!response.ok) return;
+
+        const options = (data.options || [])
+          .filter((label: unknown) => typeof label === "string" && label.trim())
+          .map((label: string) => ({ value: label, label }));
+
+        setIndustryOptions(options);
+      } catch {
+        setIndustryOptions([]);
+      }
+    };
+
+    loadIndustryOptions();
+  }, []);
 
   const handleSubmit = async (values: UserProfile) => {
     const success = await saveProfile(values);

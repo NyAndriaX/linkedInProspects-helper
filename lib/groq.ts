@@ -72,6 +72,23 @@ Generate posts on DIFFERENT and FRESH topics.\n`
     ? `\n## SPECIFIC TOPIC\nWrite about the following topic/theme: ${options.topic}\nMake sure the content is deeply focused on this subject.\n`
     : "";
 
+  const commonThemeSection =
+    options?.topicSource === "common" && options?.selectedTheme
+      ? `\n## COMMON THEME MODE (HIGH PRIORITY)
+Selected theme: ${options.selectedTheme}
+
+For this mode, strictly follow these rules:
+1. Identify current, trending, and relevant subtopics within this selected theme.
+2. Pick an interesting angle: recent updates, best practices, real feedback, comparisons, performance, security, or architecture.
+3. Write a professional LinkedIn post that shares clear know-how and practical value.
+4. You may reference recent updates/news if relevant, but keep it concise and understandable.
+5. Keep the tone professional, modern, accessible, and suitable for an IT developer profile.
+6. Prefer a natural human style (not robotic).
+7. Write in 8 to 15 short lines.
+8. End with an engaging question when relevant to spark comments.
+`
+      : "";
+
   // Style section (when user picks a specific post format)
   const postStyleDescriptions: Record<string, string> = {
     tips_list: "Write as a numbered list of practical tips or lessons (e.g., '5 things I learned about X'). Use clear numbering and actionable points.",
@@ -107,7 +124,7 @@ ${avoidTopicsSection}
 - Tone: ${tone}
 - Language: ${language}
 
-${topicSection}${styleSection}## YOUR TASK
+${topicSection}${commonThemeSection}${styleSection}## YOUR TASK
 Generate ${count} unique, high-engagement LinkedIn post(s) that:
 
 1. **Hook**: Start with a powerful hook (question, bold statement, or surprising fact) in the very first line
@@ -176,6 +193,8 @@ export interface ProfileData {
  */
 export interface GenerationOptions {
   topic?: string;
+  topicSource?: "auto" | "common";
+  selectedTheme?: string;
   toneOverride?: string;
   style?: string;
   includeContactCta?: boolean;

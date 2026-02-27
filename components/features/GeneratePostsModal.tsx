@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
   Modal,
@@ -56,6 +56,7 @@ interface GeneratePostsModalProps {
   onClose: () => void;
   onSaved: () => void;
   profileTone?: string;
+  profileIndustry?: string;
   profileContact?: {
     phone?: string;
     githubUrl?: string;
@@ -85,17 +86,6 @@ const STYLE_KEYS = [
   "myth_busting",
 ] as const;
 
-const COMMON_TOPIC_KEYS = [
-  "personal_branding",
-  "freelance_mistakes",
-  "client_acquisition",
-  "productivity",
-  "ai_tools",
-  "leadership",
-  "career_growth",
-  "networking",
-] as const;
-
 function buildFullContent(content: string, hashtags: string[]): string {
   if (hashtags.length === 0) return content;
   return content + "\n\n" + hashtags.join(" ");
@@ -106,6 +96,7 @@ export function GeneratePostsModal({
   onClose,
   onSaved,
   profileTone = "professional",
+  profileIndustry = "other",
   profileContact,
 }: GeneratePostsModalProps) {
   const { data: session } = useSession();
@@ -119,7 +110,9 @@ export function GeneratePostsModal({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSuggestingTopic, setIsSuggestingTopic] = useState(false);
+  const [isLoadingCommonThemes, setIsLoadingCommonThemes] = useState(false);
   const [topicInputMode, setTopicInputMode] = useState<"auto" | "common">("auto");
+  const [commonThemes, setCommonThemes] = useState<string[]>([]);
   const [posts, setPosts] = useState<GeneratedPost[]>([]);
   const [form] = Form.useForm();
 
@@ -134,6 +127,16 @@ export function GeneratePostsModal({
 
   const handleGenerate = async () => {
     const values = form.getFieldsValue();
+
+    if (topicInputMode === "common" && !values.commonTheme) {
+      messageApi.warning(t("generate.commonThemeRequired"));
+      return;
+    }
+
+    const selectedThemeOption = commonTopicOptions.find(
+      (option) => option.value === values.commonTheme
+    );
+
     setIsGenerating(true);
     try {
       const response = await fetch("/api/generate", {
@@ -142,6 +145,9 @@ export function GeneratePostsModal({
         body: JSON.stringify({
           count: values.count || 1,
           topic: values.topic || undefined,
+          topicSource: topicInputMode,
+          selectedTheme:
+            topicInputMode === "common" ? selectedThemeOption?.label : undefined,
           toneOverride: values.tone !== profileTone ? values.tone : undefined,
           style: values.style !== "auto" ? values.style : undefined,
           includeImage: values.includeImage || false,
@@ -279,10 +285,41 @@ export function GeneratePostsModal({
     label: t(`generate.styles.${key}`),
   }));
 
-  const commonTopicOptions = COMMON_TOPIC_KEYS.map((key) => ({
-    value: key,
-    label: t(`generate.commonTopics.${key}`),
+  const commonTopicOptions = commonThemes.map((theme) => ({
+    value: theme,
+    label: theme,
   }));
+
+  useEffect(() => {
+    if (!open) return;
+
+    const loadCommonThemes = async () => {
+      setIsLoadingCommonThemes(true);
+      try {
+        const response = await fetch(
+          `/api/options/themes?industry=${encodeURIComponent(profileIndustry || "")}`
+        );
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || t("messages.generateFailed"));
+        }
+
+        const options = (data.options || []).filter(
+          (item: unknown) => typeof item === "string" && item.trim()
+        );
+        setCommonThemes(options);
+      } catch (error) {
+        setCommonThemes([]);
+        messageApi.warning(
+          error instanceof Error ? error.message : t("messages.generateFailed")
+        );
+      } finally {
+        setIsLoadingCommonThemes(false);
+      }
+    };
+
+    loadCommonThemes();
+  }, [open, profileIndustry, t, messageApi]);
 
   const handleSuggestTopic = async () => {
     setIsSuggestingTopic(true);
@@ -455,6 +492,7 @@ export function GeneratePostsModal({
                     label: t("generate.topicModeCommon"),
                     children: (
                       <Form.Item
+                        name="commonTheme"
                         label={
                           <span className="font-medium">
                             {t("generate.commonTopicsLabel")}
@@ -464,9 +502,13 @@ export function GeneratePostsModal({
                         <Select
                           placeholder={t("generate.commonTopicsPlaceholder")}
                           options={commonTopicOptions}
-                          onChange={(value) =>
-                            form.setFieldValue("topic", t(`generate.commonTopics.${value}`))
+                          loading={isLoadingCommonThemes}
+                          notFoundContent={
+                            isLoadingCommonThemes
+                              ? t("generate.loadingCommonThemes")
+                              : t("generate.noCommonThemes")
                           }
+                          onChange={(value) => form.setFieldValue("topic", value)}
                           allowClear
                           style={{ width: "100%" }}
                         />
