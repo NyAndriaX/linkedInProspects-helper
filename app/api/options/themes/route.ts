@@ -24,11 +24,17 @@ function parseStringArray(content: string): string[] {
 async function fetchAiThemes(params: {
   language: "fr" | "en";
   industry?: string;
+  specialties?: string[];
 }): Promise<string[]> {
   const industryLabel = params.industry?.trim() || "Technology / IT";
+  const specialtiesLabel =
+    params.specialties && params.specialties.length > 0
+      ? params.specialties.join(", ")
+      : "N/A";
   const prompt =
     params.language === "fr"
       ? `Retourne uniquement un tableau JSON de 12 thématiques actuelles, courantes et pertinentes pour LinkedIn, dans ce secteur: ${industryLabel}.
+Spécialités du profil: ${specialtiesLabel}.
 Exemples attendus pour IT: ["React","Node.js","DevOps","IA","Cloud"].
 Règles:
 - sortie strictement JSON array de strings
@@ -36,6 +42,7 @@ Règles:
 - sans doublons
 - en français`
       : `Return only a JSON array of 12 current, common and relevant LinkedIn themes for this industry: ${industryLabel}.
+Profile specialties: ${specialtiesLabel}.
 Expected examples for IT: ["React","Node.js","DevOps","AI","Cloud"].
 Rules:
 - output strictly as JSON array of strings
@@ -69,21 +76,26 @@ export async function GET(request: NextRequest) {
 
     const industryFromQuery = request.nextUrl.searchParams.get("industry") || "";
 
-    const user = await prisma.user.findUnique({
+    const user = (await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { preferredLanguage: true, industry: true },
-    });
+      select: { preferredLanguage: true, industry: true, specialties: true } as any,
+    })) as { preferredLanguage?: string | null; industry?: string | null; specialties?: string[] } | null;
 
     const language: "fr" | "en" = user?.preferredLanguage === "en" ? "en" : "fr";
     const industry = industryFromQuery || user?.industry || "";
-    const cacheKey = `${language}:${industry.toLowerCase()}`;
+    const specialties = user?.specialties || [];
+    const cacheKey = `${language}:${industry.toLowerCase()}:${specialties
+      .slice()
+      .sort()
+      .join("|")
+      .toLowerCase()}`;
 
     const cached = themeCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       return ApiResponse.success({ options: cached.data });
     }
 
-    const options = await fetchAiThemes({ language, industry });
+    const options = await fetchAiThemes({ language, industry, specialties });
     if (options.length === 0) {
       return ApiResponse.error("Failed to build common themes list");
     }

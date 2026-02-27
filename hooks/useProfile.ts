@@ -15,6 +15,7 @@ interface ProfileApiResponse {
   jobTitle?: string;
   company?: string;
   industry?: string;
+  specialties?: string[];
   yearsOfExperience?: string;
   targetAudience?: string;
   targetIndustries?: string[];
@@ -41,6 +42,7 @@ function mapApiToProfile(data: ProfileApiResponse): UserProfile {
     jobTitle: data.jobTitle || "",
     company: data.company || "",
     industry: data.industry || "",
+    specialties: data.specialties || [],
     yearsOfExperience: data.yearsOfExperience || "",
     targetAudience: data.targetAudience || "",
     targetIndustries: data.targetIndustries || [],

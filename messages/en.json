@@ -791,6 +791,9 @@
       "industry": "Industry",
       "industryRequired": "Please select your industry",
       "industryPlaceholder": "Select your industry",
+      "specialties": "Industry specialties",
+      "specialtiesPlaceholder": "Select or add one or more specialties",
+      "specialtiesHelp": "You can select multiple specialties and add your own custom values.",
       "targetAudience": "Target Audience",
       "targetAudiencePlaceholder": "e.g., Startup founders, HR managers, Tech enthusiasts..."
     },

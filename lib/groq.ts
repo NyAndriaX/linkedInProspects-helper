@@ -27,6 +27,7 @@ export function buildPostGenerationPrompt(
   options?: GenerationOptions
 ): string {
   const language = profile.preferredLanguage === "fr" ? "French" : "English";
+  const currentYear = new Date().getFullYear();
   
   const toneDescriptions: Record<string, string> = {
     professional: "formal and business-oriented",
@@ -116,6 +117,7 @@ ${avoidTopicsSection}
 ## AUTHOR PROFILE
 - Job Title: ${profile.jobTitle || "Professional"}${profile.company ? `\n- Company: ${profile.company}` : "\n- Status: Independent / Freelance / Entrepreneur"}
 - Industry: ${profile.industry || "General"}
+- Industry Specialties: ${profile.specialties?.join(", ") || "N/A"}
 - Years of Experience: ${profile.yearsOfExperience || "Several years"}
 - Expertise Areas: ${profile.expertise?.join(", ") || "Various fields"}
 - Unique Value Proposition: ${profile.uniqueValue || "Professional insights"}
@@ -130,6 +132,7 @@ ${avoidTopicsSection}
 - Content Goals: ${goals || "engagement and thought leadership"}
 - Tone: ${tone}
 - Language: ${language}
+- Time context: ${currentYear} (prefer recent and up-to-date references)
 
 ${topicSection}${commonThemeSection}${styleSection}## YOUR TASK
 Generate ${count} unique, high-engagement LinkedIn post(s) that:
@@ -142,6 +145,34 @@ Generate ${count} unique, high-engagement LinkedIn post(s) that:
 6. **Format**: Use line breaks, emojis sparingly (2-4 max), and easy-to-read structure
 7. **Length**: 150-250 words each, maximum 1300 characters (optimal for LinkedIn algorithm)
 8. **Authenticity**: Write as if the author is sharing genuinely, not selling
+
+## MANDATORY QUALITY GATE (DO NOT SKIP)
+Each post MUST include:
+1. **One concrete example** (tool, framework, method, metric, update, or real scenario).
+2. **One actionable recommendation** readers can apply immediately (a clear next step).
+3. **One targeted closing question** aligned with the post topic (not generic like "What do you think?").
+4. **A clear structure in this order**:
+   - Context (problem/situation)
+   - Action (what was done / what to do)
+   - Result (outcome or expected impact)
+5. **Numeric claims policy**:
+   - If you mention a number or percentage, provide context (baseline, scope, or timeframe).
+   - If context is unknown, avoid invented numbers.
+6. **Technical coherence**:
+   - Avoid mixing tools/frameworks that do not logically fit together in the same implementation claim.
+7. **LinkedIn readability format**:
+   - First line must be a strong hook (max 12 words).
+   - Use short paragraphs (1-2 lines each).
+   - Use line breaks generously (\n\n) for mobile readability.
+   - Include one mini list with 2-4 bullet points ("- " prefix).
+   - Keep sentences concise and concrete (avoid dense blocks).
+8. **Freshness and factual safety**:
+   - Prefer recent updates/features/articles in the chosen ecosystem.
+   - Do NOT anchor on old versions when newer releases exist.
+   - If version certainty is low, avoid exact version numbers and use "recent release(s)" wording.
+   - Do NOT invent fake API names, hook names, or library features.
+
+Avoid vague filler content. Be specific and practical.
 
 ## VIRAL POST PATTERNS TO USE
 - Contrarian takes on common industry beliefs
@@ -179,6 +210,7 @@ export interface ProfileData {
   jobTitle?: string;
   company?: string;
   industry?: string;
+  specialties?: string[];
   yearsOfExperience?: string;
   targetAudience?: string;
   targetIndustries?: string[];

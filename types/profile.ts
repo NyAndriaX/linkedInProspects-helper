@@ -6,6 +6,7 @@ export interface UserProfile {
   jobTitle: string;
   company: string;
   industry: string;
+  specialties: string[];
   yearsOfExperience: string;
 
   // Target audience
@@ -75,6 +76,7 @@ export const defaultUserProfile: UserProfile = {
   jobTitle: "",
   company: "",
   industry: "",
+  specialties: [],
   yearsOfExperience: "",
   targetAudience: "",
   targetIndustries: [],

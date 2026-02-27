@@ -62,7 +62,12 @@ export default function SettingsPage() {
   const [industryOptions, setIndustryOptions] = useState<
     { value: string; label: string }[]
   >([]);
+  const [specialtyOptions, setSpecialtyOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [isLoadingSpecialties, setIsLoadingSpecialties] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
+  const selectedIndustry = Form.useWatch("industry", form);
 
   const contentGoalOptions = contentGoalKeys.map((key) => ({
     value: key,
@@ -102,6 +107,36 @@ export default function SettingsPage() {
     loadIndustryOptions();
   }, []);
 
+  useEffect(() => {
+    const loadSpecialtyOptions = async () => {
+      if (!selectedIndustry) {
+        setSpecialtyOptions([]);
+        return;
+      }
+
+      setIsLoadingSpecialties(true);
+      try {
+        const response = await fetch(
+          `/api/options/specialties?industry=${encodeURIComponent(selectedIndustry)}`
+        );
+        const data = await response.json();
+        if (!response.ok) return;
+
+        const options = (data.options || [])
+          .filter((label: unknown) => typeof label === "string" && label.trim())
+          .map((label: string) => ({ value: label, label }));
+
+        setSpecialtyOptions(options);
+      } catch {
+        setSpecialtyOptions([]);
+      } finally {
+        setIsLoadingSpecialties(false);
+      }
+    };
+
+    loadSpecialtyOptions();
+  }, [selectedIndustry, form]);
+
   const handleSubmit = async (values: UserProfile) => {
     const success = await saveProfile(values);
     if (success) {
@@ -133,7 +168,7 @@ export default function SettingsPage() {
       <div className="space-y-6">
         {/* Page Header */}
         <div>
-          <Title level={2} className="!mb-2">
+          <Title level={2} className="mb-2!">
             {t("title")}
           </Title>
           <Paragraph type="secondary">
@@ -190,6 +225,31 @@ export default function SettingsPage() {
                         .toLowerCase()
                         .includes(input.toLowerCase())
                     }
+                  />
+                </Form.Item>
+
+                <Form.Item
+                  name="specialties"
+                  label={t("professional.specialties")}
+                  extra={t("professional.specialtiesHelp")}
+                >
+                  <Select
+                    mode="tags"
+                    placeholder={t("professional.specialtiesPlaceholder")}
+                    options={specialtyOptions}
+                    loading={isLoadingSpecialties}
+                    showSearch
+                    allowClear
+                    tokenSeparators={[","]}
+                    onBlur={() => {
+                      const current = form.getFieldValue("specialties");
+                      if (Array.isArray(current)) {
+                        form.setFieldValue(
+                          "specialties",
+                          current.map((item: string) => item.trim()).filter(Boolean)
+                        );
+                      }
+                    }}
                   />
                 </Form.Item>
 

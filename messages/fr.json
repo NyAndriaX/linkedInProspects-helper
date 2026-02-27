@@ -791,6 +791,9 @@
       "industry": "Secteur d'activité",
       "industryRequired": "Veuillez sélectionner votre secteur",
       "industryPlaceholder": "Sélectionnez votre secteur",
+      "specialties": "Spécialités du secteur",
+      "specialtiesPlaceholder": "Choisissez ou ajoutez une ou plusieurs spécialités",
+      "specialtiesHelp": "Vous pouvez sélectionner plusieurs spécialités et ajouter vos propres valeurs.",
       "targetAudience": "Audience cible",
       "targetAudiencePlaceholder": "ex: Fondateurs de startups, Responsables RH, Passionnés de tech..."
     },

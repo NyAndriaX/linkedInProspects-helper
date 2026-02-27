@@ -19,6 +19,7 @@ model User {
   jobTitle          String?
   company           String?
   industry          String?
+  specialties       String[]
   yearsOfExperience String?
   targetAudience    String?
   targetIndustries  String[]

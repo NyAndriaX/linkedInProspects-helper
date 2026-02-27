@@ -40,6 +40,147 @@ type GenerationOptionsWithThemeBrief = GenerationOptions & {
   commonThemeBrief?: ThemeBrief;
 };
 
+function countLines(content: string): number {
+  return content
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean).length;
+}
+
+function includesAnyKeyword(content: string, keywords: string[]): boolean {
+  const text = content.toLowerCase();
+  return keywords.some((keyword) => text.includes(keyword.toLowerCase()));
+}
+
+function isPostSpecificEnough(params: {
+  content: string;
+  selectedTheme?: string;
+  themeBrief?: ThemeBrief;
+}): boolean {
+  const { content, selectedTheme, themeBrief } = params;
+  const lines = countLines(content);
+  const hasTargetedQuestion = content.includes("?") && !/qu[' ]en pensez-vous/i.test(content);
+  const hasThemeSignal = selectedTheme
+    ? includesAnyKeyword(content, [selectedTheme])
+    : true;
+  const hasConcreteReference = themeBrief
+    ? includesAnyKeyword(content, [...themeBrief.tools, ...themeBrief.trends])
+    : true;
+  const text = content.toLowerCase();
+  const hasIncoherentMix =
+    text.includes("create react app") &&
+    (text.includes("next.js") || text.includes("nextjs"));
+
+  return (
+    lines >= 8 &&
+    lines <= 16 &&
+    hasTargetedQuestion &&
+    hasThemeSignal &&
+    hasConcreteReference &&
+    !hasIncoherentMix
+  );
+}
+
+async function rewritePostForSpecificity(params: {
+  post: { title: string; content: string; hashtags: string[] };
+  selectedTheme: string;
+  language: "fr" | "en";
+  themeBrief?: ThemeBrief;
+}): Promise<{ title: string; content: string; hashtags: string[] }> {
+  const brief = params.themeBrief
+    ? `Trends: ${params.themeBrief.trends.join(", ")}
+Tools: ${params.themeBrief.tools.join(", ")}
+Angles: ${params.themeBrief.angles.join(", ")}`
+    : "No additional brief";
+
+  const prompt =
+    params.language === "fr"
+      ? `Réécris ce post LinkedIn pour qu'il soit plus concret et plus expert sur "${params.selectedTheme}".
+Post actuel:
+Titre: ${params.post.title}
+Contenu: ${params.post.content}
+Hashtags: ${params.post.hashtags.join(", ")}
+
+Contexte:
+${brief}
+
+Règles strictes:
+- 8 à 15 lignes
+- inclure au moins 2 références concrètes (outils, frameworks, updates)
+- inclure une recommandation actionnable claire
+- finir avec une question ciblée (pas générique)
+- structure claire: Contexte -> Action -> Résultat
+- si un chiffre/% est mentionné, ajouter baseline/scope/période; sinon ne pas inventer de chiffre
+- garder la cohérence technique (pas de mélange incohérent d'outils dans une même affirmation)
+- première ligne = hook fort (max 12 mots)
+- paragraphes très courts (1-2 lignes), avec sauts de ligne lisibles
+- inclure une mini liste de 2 à 4 puces ("- ")
+- privilégier les nouveautés récentes (features, hooks, updates, articles)
+- éviter les versions obsolètes si des versions plus récentes existent
+- si la version exacte est incertaine, ne pas inventer de numéro de version
+- ne jamais inventer de nom de hook/API
+- ton pro, moderne, accessible
+- retourner uniquement un JSON objet:
+{"title":"...","content":"...","hashtags":["#...","#...","#...","#...","#..."]}`
+      : `Rewrite this LinkedIn post to be more specific and expert-level on "${params.selectedTheme}".
+Current post:
+Title: ${params.post.title}
+Content: ${params.post.content}
+Hashtags: ${params.post.hashtags.join(", ")}
+
+Context:
+${brief}
+
+Strict rules:
+- 8 to 15 lines
+- include at least 2 concrete references (tools, frameworks, updates)
+- include one clear actionable recommendation
+- end with a targeted question (not generic)
+- clear structure: Context -> Action -> Result
+- if a number/% is used, include baseline/scope/timeframe; otherwise avoid invented numbers
+- keep technical coherence (no incoherent tool mixing in one implementation claim)
+- first line = strong hook (max 12 words)
+- very short paragraphs (1-2 lines), with clear line breaks
+- include one mini-list of 2 to 4 bullet points ("- ")
+- prefer recent updates/features/articles in the ecosystem
+- avoid outdated version references when newer releases exist
+- if exact version is uncertain, avoid explicit version numbers
+- never invent hook/API names
+- professional, modern, accessible tone
+- return only one JSON object:
+{"title":"...","content":"...","hashtags":["#...","#...","#...","#...","#..."]}`;
+
+  const completion = await getGroqClient().chat.completions.create({
+    model: GROQ_MODEL,
+    messages: [
+      { role: "system", content: "Return valid JSON only." },
+      { role: "user", content: prompt },
+    ],
+    temperature: 0.4,
+    max_tokens: 1200,
+  });
+
+  const responseText = completion.choices[0]?.message?.content || "";
+  try {
+    const objectMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!objectMatch) return params.post;
+    const parsed = JSON.parse(objectMatch[0]) as {
+      title?: string;
+      content?: string;
+      hashtags?: string[];
+    };
+    return {
+      title: parsed.title || params.post.title,
+      content: parsed.content || params.post.content,
+      hashtags: Array.isArray(parsed.hashtags) && parsed.hashtags.length > 0
+        ? parsed.hashtags
+        : params.post.hashtags,
+    };
+  } catch {
+    return params.post;
+  }
+}
+
 function hasAnyContact(contact: ContactData): boolean {
   return Boolean(
     contact.phone?.trim() ||
@@ -110,11 +251,16 @@ function parseThemeBrief(content: string): ThemeBrief | null {
 async function buildThemeBrief(params: {
   selectedTheme: string;
   industry: string;
+  specialties: string[];
   language: "fr" | "en";
 }): Promise<ThemeBrief | null> {
+  const specialtiesText = params.specialties.length
+    ? params.specialties.join(", ")
+    : "none specified";
   const prompt =
     params.language === "fr"
       ? `Crée un brief ultra concret pour un post LinkedIn sur la thématique "${params.selectedTheme}" dans le secteur "${params.industry}".
+Spécialités du profil: ${specialtiesText}.
 Retourne STRICTEMENT un objet JSON:
 {
   "trends": ["...","...","..."],
@@ -127,6 +273,7 @@ Règles:
 - angles: 3 angles de contenu utiles (comparaison, perf, sécurité, bonnes pratiques, retour d'expérience...)
 - français, court, précis, sans blabla, sans markdown`
       : `Create a very concrete brief for a LinkedIn post on "${params.selectedTheme}" in the "${params.industry}" industry.
+Profile specialties: ${specialtiesText}.
 Return STRICTLY a JSON object:
 {
   "trends": ["...","...","..."],
@@ -191,7 +338,9 @@ function extractSearchKeywords(text: string): string {
  */
 async function fetchUnsplashImage(
   queries: string[],
-  pickIndex = 0
+  pickIndex = 0,
+  relevanceKeywords: string[] = [],
+  strictTopicMatch = false
 ): Promise<string | null> {
   const accessKey = process.env.UNSPLASH_ACCESS_KEY;
   if (!accessKey) {
@@ -225,8 +374,41 @@ async function fetchUnsplashImage(
         continue;
       }
 
+      const blockedWords = [
+        "car",
+        "cars",
+        "vehicle",
+        "automobile",
+        "phone",
+        "smartphone",
+        "samsung",
+      ];
+
+      const lowerKeywords = relevanceKeywords
+        .map((keyword) => keyword.toLowerCase())
+        .filter(Boolean);
+
+      const scored = results
+        .map((item: { alt_description?: string; description?: string }) => {
+          const text = `${item.alt_description || ""} ${item.description || ""}`.toLowerCase();
+          const blocked = blockedWords.some((word) => text.includes(word));
+          const keywordMatches = lowerKeywords.filter((keyword) => text.includes(keyword)).length;
+          return { item, blocked, keywordMatches };
+        })
+        .filter((entry: { blocked: boolean }) => !entry.blocked)
+        .sort((a: { keywordMatches: number }, b: { keywordMatches: number }) => b.keywordMatches - a.keywordMatches);
+
+      const candidates =
+        scored.length > 0
+          ? scored.map((entry: { item: unknown }) => entry.item as { urls?: { regular?: string } })
+          : results;
+
+      if (strictTopicMatch && candidates.length === 0) {
+        console.log(`[Unsplash] Strict mode rejected query "${query}" (no clean candidate)`);
+        continue;
+      }
       // Pick a different image for each post to avoid duplicates
-      const picked = results[pickIndex % results.length];
+      const picked = candidates[pickIndex % candidates.length];
       const imageUrl = picked?.urls?.regular || null;
 
       if (imageUrl) {
@@ -271,12 +453,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user profile from database
-    const user = await prisma.user.findUnique({
+    const user = (await prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
         jobTitle: true,
         company: true,
         industry: true,
+        specialties: true,
         yearsOfExperience: true,
         targetAudience: true,
         targetIndustries: true,
@@ -291,8 +474,29 @@ export async function POST(request: NextRequest) {
         githubUrl: true,
         portfolioUrl: true,
         linkedInProfileUrl: true,
-      },
-    });
+      } as unknown as never,
+    })) as
+      | (Record<string, unknown> & {
+          jobTitle?: string | null;
+          company?: string | null;
+          industry?: string | null;
+          specialties?: string[];
+          yearsOfExperience?: string | null;
+          targetAudience?: string | null;
+          targetIndustries?: string[];
+          contentGoals?: string[];
+          preferredTone?: string | null;
+          preferredLanguage?: string | null;
+          contentTopics?: string[];
+          uniqueValue?: string | null;
+          expertise?: string[];
+          personalBrand?: string | null;
+          phone?: string | null;
+          githubUrl?: string | null;
+          portfolioUrl?: string | null;
+          linkedInProfileUrl?: string | null;
+        })
+      | null;
 
     if (!user) {
       return ApiResponse.notFound("User profile not found");
@@ -315,10 +519,15 @@ export async function POST(request: NextRequest) {
     const existingTitles = existingPosts.map((post) => post.title);
 
     // Build prompt
+    const userSpecialties = Array.isArray(user.specialties)
+      ? user.specialties
+      : [];
+
     const profile: ProfileData = {
       jobTitle: user.jobTitle || undefined,
       company: user.company || undefined,
       industry: user.industry || undefined,
+      specialties: userSpecialties,
       yearsOfExperience: user.yearsOfExperience || undefined,
       targetAudience: user.targetAudience || undefined,
       targetIndustries: user.targetIndustries || undefined,
@@ -345,6 +554,7 @@ export async function POST(request: NextRequest) {
       const themeBrief = await buildThemeBrief({
         selectedTheme,
         industry: user.industry || "Technology / IT",
+        specialties: userSpecialties,
         language,
       });
       if (themeBrief) {
@@ -392,18 +602,71 @@ export async function POST(request: NextRequest) {
 
     const shouldAppendContactCta = includeContactCta && hasAnyContact(contactData);
 
+    const language = user.preferredLanguage === "en" ? "en" : "fr";
+
     const postsWithContact = generatedPosts.map((post) => ({
       ...post,
       content: shouldAppendContactCta
         ? `${post.content}\n\n${buildContactCta(
             contactData,
-            user.preferredLanguage === "en" ? "en" : "fr"
+            language
           )}`
         : post.content,
     }));
 
+    let finalizedPosts = postsWithContact;
+
+    // Quality enforcement for common-theme mode: rewrite weak posts.
+    if (topicSource === "common" && selectedTheme) {
+      finalizedPosts = await Promise.all(
+        postsWithContact.map(async (post) => {
+          if (
+            isPostSpecificEnough({
+              content: post.content,
+              selectedTheme,
+              themeBrief: generationOptions.commonThemeBrief,
+            })
+          ) {
+            return post;
+          }
+          return rewritePostForSpecificity({
+            post,
+            selectedTheme,
+            language,
+            themeBrief: generationOptions.commonThemeBrief,
+          });
+        })
+      );
+    }
+
+    const shouldRunQualityRewrite =
+      finalizedPosts.length > 0 && Boolean(selectedTheme || topic);
+
+    if (shouldRunQualityRewrite) {
+      const qualityTheme = selectedTheme || String(topic || "").trim() || "technical topic";
+      finalizedPosts = await Promise.all(
+        finalizedPosts.map(async (post) => {
+          if (
+            isPostSpecificEnough({
+              content: post.content,
+              selectedTheme: qualityTheme,
+              themeBrief: generationOptions.commonThemeBrief,
+            })
+          ) {
+            return post;
+          }
+          return rewritePostForSpecificity({
+            post,
+            selectedTheme: qualityTheme,
+            language,
+            themeBrief: generationOptions.commonThemeBrief,
+          });
+        })
+      );
+    }
+
     // Fetch Unsplash images if requested (one per post, with smart keyword extraction)
-    let postsWithImages = postsWithContact.map((post) => ({
+    let postsWithImages = finalizedPosts.map((post) => ({
       ...post,
       imageUrl: null as string | null,
     }));
@@ -415,7 +678,11 @@ export async function POST(request: NextRequest) {
       const industryKeyword = user.industry || "";
       const topicKeyword = topic || "";
 
-      const imagePromises = postsWithContact.map((post, index) => {
+      const themeKeyword = selectedTheme || "";
+      const themeTools = generationOptions.commonThemeBrief?.tools || [];
+      const strictImageMatching = topicSource === "common" && Boolean(themeKeyword);
+
+      const imagePromises = finalizedPosts.map((post, index) => {
         // Build a cascade of queries from most specific to most generic:
         // 1. Keywords extracted from the post title
         // 2. The user-provided topic (if any)
@@ -424,15 +691,29 @@ export async function POST(request: NextRequest) {
         const titleKeywords = extractSearchKeywords(post.title || "");
         const realismSuffix = realisticImage ? " realistic photo" : "";
         const queries = [
+          `${themeKeyword}${realismSuffix}`.trim(),
+          ...themeTools.slice(0, 2).map((tool) => `${tool}${realismSuffix}`.trim()),
+          themeKeyword
+            ? `software developer ${themeKeyword} coding ${realismSuffix}`.trim()
+            : "",
           `${titleKeywords}${realismSuffix}`.trim(),
           `${topicKeyword}${realismSuffix}`.trim(),
           `${industryKeyword}${realismSuffix}`.trim(),
-          realisticImage
-            ? "professional business workplace realistic photo"
-            : "professional business technology",
+          ...(strictImageMatching
+            ? []
+            : [
+                realisticImage
+                  ? "professional business workplace realistic photo"
+                  : "professional business technology",
+              ]),
         ].filter(Boolean);
 
-        return fetchUnsplashImage(queries, index);
+        return fetchUnsplashImage(
+          queries,
+          index,
+          [themeKeyword, ...themeTools, titleKeywords, topicKeyword, industryKeyword],
+          strictImageMatching
+        );
       });
 
       const images = await Promise.all(imagePromises);
