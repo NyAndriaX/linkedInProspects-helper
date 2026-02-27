@@ -26,6 +26,7 @@ export interface PostFormData {
   title: string;
   content: string;
   status: PostStatus;
+  imageUrl?: string | null;
 }
 
 /**

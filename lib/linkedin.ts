@@ -172,6 +172,21 @@ export async function prepareLinkedInImage(
 }
 
 /**
+ * Delete an existing LinkedIn post by URN.
+ * Expected URN format: urn:li:share:{id} or urn:li:ugcPost:{id}
+ */
+export async function deleteLinkedInPost(
+  linkedInUrn: string,
+  accessToken: string
+): Promise<void> {
+  await linkedInClient.delete(`/posts/${encodeURIComponent(linkedInUrn)}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+}
+
+/**
  * Error messages for LinkedIn API errors
  */
 export const ERROR_MESSAGES = {

@@ -60,8 +60,11 @@ export async function POST(request: NextRequest) {
     // If there's an image, upload it to LinkedIn first
     let postBody;
     if (imageUrl) {
+      const normalizedImageUrl = /^https?:\/\//i.test(imageUrl)
+        ? imageUrl
+        : new URL(imageUrl, request.nextUrl.origin).toString();
       const imageAsset = await prepareLinkedInImage(
-        imageUrl,
+        normalizedImageUrl,
         session.linkedInId,
         session.accessToken
       );

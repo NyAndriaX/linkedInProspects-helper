@@ -17,6 +17,7 @@ import {
   Space,
   Tooltip,
   Avatar,
+  Upload,
 } from "antd";
 import {
   PlusOutlined,
@@ -29,6 +30,7 @@ import {
   WarningOutlined,
   UserOutlined,
   GlobalOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
@@ -65,6 +67,7 @@ export default function PostsPage() {
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [isImageUploading, setIsImageUploading] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -90,6 +93,7 @@ export default function PostsPage() {
       title: post.title,
       content: post.content,
       status: post.status,
+      imageUrl: post.imageUrl || undefined,
     });
     setIsModalOpen(true);
   };
@@ -100,15 +104,63 @@ export default function PostsPage() {
   };
 
   const handleSubmit = async (values: PostFormData) => {
+    const payload: PostFormData = {
+      ...values,
+      imageUrl: values.imageUrl?.trim() || null,
+    };
+
     if (editingPost) {
-      updatePost(editingPost.id, values);
+      updatePost(editingPost.id, payload);
       messageApi.success(t("messages.updated"));
     } else {
-      addPost(values);
+      addPost(payload);
       messageApi.success(t("messages.created"));
     }
     setIsModalOpen(false);
     form.resetFields();
+  };
+
+  const isValidImagePath = (value: string) =>
+    /^https?:\/\/\S+$/i.test(value) || value.startsWith("/uploads/");
+
+  const handleImageUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      messageApi.error(t("modal.imageTypeInvalid"));
+      return false;
+    }
+
+    const maxSizeMb = 5;
+    if (file.size > maxSizeMb * 1024 * 1024) {
+      messageApi.error(t("modal.imageSizeInvalid", { max: maxSizeMb }));
+      return false;
+    }
+
+    setIsImageUploading(true);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+
+      const response = await fetch("/api/uploads/image", {
+        method: "POST",
+        body,
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || t("modal.imageUploadFailed"));
+      }
+
+      form.setFieldValue("imageUrl", data.url);
+      messageApi.success(t("modal.imageUploaded"));
+    } catch (error) {
+      messageApi.error(
+        error instanceof Error ? error.message : t("modal.imageUploadFailed")
+      );
+    } finally {
+      setIsImageUploading(false);
+    }
+
+    return false;
   };
 
   const handleDelete = (id: string) => {
@@ -525,6 +577,72 @@ export default function PostsPage() {
               maxLength={3000}
               style={{ resize: "none" }}
             />
+          </Form.Item>
+
+          <Form.Item
+            name="imageUrl"
+            label={t("modal.imageUrlLabel")}
+            rules={[
+              {
+                validator: (_, value: string | undefined) => {
+                  if (!value || isValidImagePath(value)) return Promise.resolve();
+                  return Promise.reject(new Error(t("modal.imageUrlInvalid")));
+                },
+              },
+            ]}
+          >
+            <Input
+              placeholder={t("modal.imageUrlPlaceholder")}
+              size="large"
+              allowClear
+            />
+          </Form.Item>
+
+          <div className="mb-4">
+            <Upload
+              accept="image/*"
+              showUploadList={false}
+              beforeUpload={handleImageUpload}
+            >
+              <Button
+                icon={<UploadOutlined />}
+                loading={isImageUploading}
+                block={isMobile}
+              >
+                {isImageUploading
+                  ? t("modal.uploadingImage")
+                  : t("modal.uploadImage")}
+              </Button>
+            </Upload>
+            <Text type="secondary" className="text-xs">
+              {t("modal.uploadImageHelp")}
+            </Text>
+          </div>
+
+          <Form.Item noStyle shouldUpdate={(prev, next) => prev.imageUrl !== next.imageUrl}>
+            {({ getFieldValue, setFieldValue }) => {
+              const imageUrl = getFieldValue("imageUrl");
+              if (!imageUrl) return null;
+
+              return (
+                <div className="mb-4 rounded-lg border border-gray-200 p-3 bg-gray-50">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={imageUrl}
+                    alt="Post preview"
+                    className="w-full object-cover rounded-md mb-2"
+                    style={{ maxHeight: 220 }}
+                  />
+                  <Button
+                    danger
+                    size="small"
+                    onClick={() => setFieldValue("imageUrl", undefined)}
+                  >
+                    {t("modal.removeImage")}
+                  </Button>
+                </div>
+              );
+            }}
           </Form.Item>
 
           <Form.Item
