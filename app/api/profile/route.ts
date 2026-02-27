@@ -24,6 +24,10 @@ const PROFILE_SELECT = {
   personalBrand: true,
   postingFrequency: true,
   preferredPostTypes: true,
+  phone: true,
+  githubUrl: true,
+  portfolioUrl: true,
+  linkedInProfileUrl: true,
 } as const;
 
 // GET /api/profile - Get the authenticated user's profile
@@ -91,6 +95,10 @@ function buildUpdateData(body: Record<string, unknown>) {
     "personalBrand",
     "postingFrequency",
     "preferredPostTypes",
+    "phone",
+    "githubUrl",
+    "portfolioUrl",
+    "linkedInProfileUrl",
   ];
 
   return profileFields.reduce<Record<string, unknown>>((data, field) => {

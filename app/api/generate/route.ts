@@ -11,6 +11,56 @@ interface GenerateRequest {
   preview?: boolean;
   includeImage?: boolean;
   realisticImage?: boolean;
+  includeContactCta?: boolean;
+}
+
+interface ContactData {
+  phone?: string | null;
+  githubUrl?: string | null;
+  portfolioUrl?: string | null;
+  linkedInProfileUrl?: string | null;
+}
+
+function hasAnyContact(contact: ContactData): boolean {
+  return Boolean(
+    contact.phone?.trim() ||
+      contact.githubUrl?.trim() ||
+      contact.portfolioUrl?.trim() ||
+      contact.linkedInProfileUrl?.trim()
+  );
+}
+
+function buildContactCta(contact: ContactData, language: "fr" | "en"): string {
+  const parts: string[] = [];
+
+  if (contact.phone?.trim()) {
+    parts.push(
+      language === "fr"
+        ? `WhatsApp: ${contact.phone.trim()}`
+        : `WhatsApp: ${contact.phone.trim()}`
+    );
+  }
+  if (contact.portfolioUrl?.trim()) {
+    parts.push(
+      language === "fr"
+        ? `portfolio: ${contact.portfolioUrl.trim()}`
+        : `portfolio: ${contact.portfolioUrl.trim()}`
+    );
+  }
+  if (contact.githubUrl?.trim()) {
+    parts.push(`GitHub: ${contact.githubUrl.trim()}`);
+  }
+  if (contact.linkedInProfileUrl?.trim()) {
+    parts.push(`LinkedIn: ${contact.linkedInProfileUrl.trim()}`);
+  }
+
+  if (parts.length === 0) return "";
+
+  const intro =
+    language === "fr"
+      ? "📩 Si vous souhaitez collaborer avec moi, contactez-moi:"
+      : "📩 If you would like to collaborate with me, contact me:";
+  return `${intro} ${parts.join(" | ")}`;
 }
 
 /**
@@ -121,6 +171,7 @@ export async function POST(request: NextRequest) {
       preview = false,
       includeImage = false,
       realisticImage = true,
+      includeContactCta = false,
     }: GenerateRequest = await request.json();
 
     // Validate count
@@ -145,6 +196,10 @@ export async function POST(request: NextRequest) {
         uniqueValue: true,
         expertise: true,
         personalBrand: true,
+        phone: true,
+        githubUrl: true,
+        portfolioUrl: true,
+        linkedInProfileUrl: true,
       },
     });
 
@@ -183,6 +238,10 @@ export async function POST(request: NextRequest) {
       uniqueValue: user.uniqueValue || undefined,
       expertise: user.expertise || undefined,
       personalBrand: user.personalBrand || undefined,
+      phone: user.phone || undefined,
+      githubUrl: user.githubUrl || undefined,
+      portfolioUrl: user.portfolioUrl || undefined,
+      linkedInProfileUrl: user.linkedInProfileUrl || undefined,
     };
 
     // Build generation options from request
@@ -190,6 +249,7 @@ export async function POST(request: NextRequest) {
     if (topic) generationOptions.topic = topic;
     if (toneOverride) generationOptions.toneOverride = toneOverride;
     if (style) generationOptions.style = style;
+    generationOptions.includeContactCta = includeContactCta;
 
     const prompt = buildPostGenerationPrompt(profile, count, existingTitles, generationOptions);
 
@@ -219,8 +279,27 @@ export async function POST(request: NextRequest) {
     // Parse generated posts
     const generatedPosts = parseGeneratedPosts(responseContent);
 
+    const contactData: ContactData = {
+      phone: user.phone,
+      githubUrl: user.githubUrl,
+      portfolioUrl: user.portfolioUrl,
+      linkedInProfileUrl: user.linkedInProfileUrl,
+    };
+
+    const shouldAppendContactCta = includeContactCta && hasAnyContact(contactData);
+
+    const postsWithContact = generatedPosts.map((post) => ({
+      ...post,
+      content: shouldAppendContactCta
+        ? `${post.content}\n\n${buildContactCta(
+            contactData,
+            user.preferredLanguage === "en" ? "en" : "fr"
+          )}`
+        : post.content,
+    }));
+
     // Fetch Unsplash images if requested (one per post, with smart keyword extraction)
-    let postsWithImages = generatedPosts.map((post) => ({
+    let postsWithImages = postsWithContact.map((post) => ({
       ...post,
       imageUrl: null as string | null,
     }));
@@ -232,7 +311,7 @@ export async function POST(request: NextRequest) {
       const industryKeyword = user.industry || "";
       const topicKeyword = topic || "";
 
-      const imagePromises = generatedPosts.map((post, index) => {
+      const imagePromises = postsWithContact.map((post, index) => {
         // Build a cascade of queries from most specific to most generic:
         // 1. Keywords extracted from the post title
         // 2. The user-provided topic (if any)

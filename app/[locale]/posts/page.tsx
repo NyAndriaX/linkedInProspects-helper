@@ -843,6 +843,12 @@ export default function PostsPage() {
         onClose={() => setIsGenerateModalOpen(false)}
         onSaved={refetch}
         profileTone={profile.preferredTone}
+        profileContact={{
+          phone: profile.phone,
+          githubUrl: profile.githubUrl,
+          portfolioUrl: profile.portfolioUrl,
+          linkedInProfileUrl: profile.linkedInProfileUrl,
+        }}
       />
     </MainLayout>
   );

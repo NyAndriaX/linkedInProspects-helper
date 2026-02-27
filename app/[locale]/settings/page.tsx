@@ -22,6 +22,10 @@ import {
   EditOutlined,
   SaveOutlined,
   ReloadOutlined,
+  PhoneOutlined,
+  GithubOutlined,
+  LinkOutlined,
+  LinkedinOutlined,
 } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -245,6 +249,69 @@ export default function SettingsPage() {
                     tokenSeparators={[","]}
                   />
                 </Form.Item>
+              </Card>
+            </Col>
+
+            {/* Contact Information */}
+            <Col xs={24}>
+              <Card
+                title={
+                  <Space>
+                    <PhoneOutlined />
+                    <span>{t("contact.title")}</span>
+                  </Space>
+                }
+              >
+                <Row gutter={[16, 0]}>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      name="phone"
+                      label={t("contact.phone")}
+                      extra={t("contact.phoneHelp")}
+                    >
+                      <Input
+                        prefix={<PhoneOutlined />}
+                        placeholder={t("contact.phonePlaceholder")}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      name="githubUrl"
+                      label={t("contact.githubUrl")}
+                      rules={[{ type: "url", message: t("contact.urlInvalid") }]}
+                    >
+                      <Input
+                        prefix={<GithubOutlined />}
+                        placeholder={t("contact.githubUrlPlaceholder")}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      name="portfolioUrl"
+                      label={t("contact.portfolioUrl")}
+                      rules={[{ type: "url", message: t("contact.urlInvalid") }]}
+                    >
+                      <Input
+                        prefix={<LinkOutlined />}
+                        placeholder={t("contact.portfolioUrlPlaceholder")}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item
+                      name="linkedInProfileUrl"
+                      label={t("contact.linkedInProfileUrl")}
+                      rules={[{ type: "url", message: t("contact.urlInvalid") }]}
+                    >
+                      <Input
+                        prefix={<LinkedinOutlined />}
+                        placeholder={t("contact.linkedInProfileUrlPlaceholder")}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
               </Card>
             </Col>
 

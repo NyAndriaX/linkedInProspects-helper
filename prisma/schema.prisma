@@ -31,6 +31,10 @@ model User {
   personalBrand     String?
   postingFrequency  String?   @default("weekly")
   preferredPostTypes String[]
+  phone             String?
+  githubUrl         String?
+  portfolioUrl      String?
+  linkedInProfileUrl String?
 
   // Relations
   posts      Post[]

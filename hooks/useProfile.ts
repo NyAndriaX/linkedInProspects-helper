@@ -27,6 +27,10 @@ interface ProfileApiResponse {
   personalBrand?: string;
   postingFrequency?: string;
   preferredPostTypes?: string[];
+  phone?: string;
+  githubUrl?: string;
+  portfolioUrl?: string;
+  linkedInProfileUrl?: string;
 }
 
 /**
@@ -49,6 +53,10 @@ function mapApiToProfile(data: ProfileApiResponse): UserProfile {
     personalBrand: data.personalBrand || "",
     postingFrequency: (data.postingFrequency || "weekly") as PostingFrequency,
     preferredPostTypes: (data.preferredPostTypes || []) as PostType[],
+    phone: data.phone || "",
+    githubUrl: data.githubUrl || "",
+    portfolioUrl: data.portfolioUrl || "",
+    linkedInProfileUrl: data.linkedInProfileUrl || "",
   };
 }
 

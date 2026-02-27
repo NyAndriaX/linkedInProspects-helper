@@ -19,6 +19,8 @@ import {
   Avatar,
   Divider,
   Badge,
+  Tabs,
+  Tooltip,
 } from "antd";
 import {
   ThunderboltOutlined,
@@ -31,6 +33,7 @@ import {
   PictureOutlined,
   CheckCircleFilled,
   EditOutlined,
+  BulbOutlined,
 } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
@@ -53,6 +56,12 @@ interface GeneratePostsModalProps {
   onClose: () => void;
   onSaved: () => void;
   profileTone?: string;
+  profileContact?: {
+    phone?: string;
+    githubUrl?: string;
+    portfolioUrl?: string;
+    linkedInProfileUrl?: string;
+  };
 }
 
 const TONE_KEYS = [
@@ -76,6 +85,17 @@ const STYLE_KEYS = [
   "myth_busting",
 ] as const;
 
+const COMMON_TOPIC_KEYS = [
+  "personal_branding",
+  "freelance_mistakes",
+  "client_acquisition",
+  "productivity",
+  "ai_tools",
+  "leadership",
+  "career_growth",
+  "networking",
+] as const;
+
 function buildFullContent(content: string, hashtags: string[]): string {
   if (hashtags.length === 0) return content;
   return content + "\n\n" + hashtags.join(" ");
@@ -86,6 +106,7 @@ export function GeneratePostsModal({
   onClose,
   onSaved,
   profileTone = "professional",
+  profileContact,
 }: GeneratePostsModalProps) {
   const { data: session } = useSession();
   const t = useTranslations("posts");
@@ -97,6 +118,8 @@ export function GeneratePostsModal({
   const [step, setStep] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSuggestingTopic, setIsSuggestingTopic] = useState(false);
+  const [topicInputMode, setTopicInputMode] = useState<"auto" | "common">("auto");
   const [posts, setPosts] = useState<GeneratedPost[]>([]);
   const [form] = Form.useForm();
 
@@ -123,6 +146,7 @@ export function GeneratePostsModal({
           style: values.style !== "auto" ? values.style : undefined,
           includeImage: values.includeImage || false,
           realisticImage: values.realisticImage !== false,
+          includeContactCta: values.includeContactCta || false,
           preview: true,
         }),
       });
@@ -255,6 +279,44 @@ export function GeneratePostsModal({
     label: t(`generate.styles.${key}`),
   }));
 
+  const commonTopicOptions = COMMON_TOPIC_KEYS.map((key) => ({
+    value: key,
+    label: t(`generate.commonTopics.${key}`),
+  }));
+
+  const handleSuggestTopic = async () => {
+    setIsSuggestingTopic(true);
+    try {
+      const response = await fetch("/api/suggest-ideas");
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || t("messages.generateFailed"));
+      }
+
+      const firstIdea = data.ideas?.[0];
+      if (!firstIdea?.hook) {
+        messageApi.warning(t("generate.topicSuggestionEmpty"));
+        return;
+      }
+
+      form.setFieldValue("topic", firstIdea.hook);
+      messageApi.success(t("generate.topicSuggested"));
+    } catch (error) {
+      messageApi.error(
+        error instanceof Error ? error.message : t("generate.topicSuggestionFailed")
+      );
+    } finally {
+      setIsSuggestingTopic(false);
+    }
+  };
+
+  const hasAnyContact = Boolean(
+    profileContact?.phone?.trim() ||
+      profileContact?.githubUrl?.trim() ||
+      profileContact?.portfolioUrl?.trim() ||
+      profileContact?.linkedInProfileUrl?.trim()
+  );
+
   return (
     <Modal
       title={null}
@@ -315,30 +377,96 @@ export function GeneratePostsModal({
               style: "auto",
               includeImage: false,
               realisticImage: true,
+              includeContactCta: false,
             }}
             onFinish={handleGenerate}
             requiredMark={false}
           >
-            {/* Topic */}
-            <Form.Item
-              name="topic"
-              label={
-                <span className="font-medium">{t("generate.topicLabel")}</span>
-              }
-              extra={
-                <Text type="secondary" className="text-xs">
-                  {t("generate.topicHelp")}
-                </Text>
-              }
-            >
-              <TextArea
-                rows={2}
-                placeholder={t("generate.topicPlaceholder")}
-                maxLength={300}
-                showCount
-                style={{ borderRadius: 8 }}
+            <div className="mb-2">
+              <Tabs
+                size="small"
+                activeKey={topicInputMode}
+                onChange={(key) => setTopicInputMode(key as "auto" | "common")}
+                items={[
+                  {
+                    key: "auto",
+                    label: t("generate.topicModeAuto"),
+                    children: (
+                      <div>
+                        <Form.Item
+                          name="topic"
+                          label={
+                            <span className="font-medium">
+                              {t("generate.topicLabel")}
+                            </span>
+                          }
+                          extra={
+                            <Text type="secondary" className="text-xs">
+                              {t("generate.topicHelp")}
+                            </Text>
+                          }
+                        >
+                          <div className="relative">
+                            <TextArea
+                              rows={2}
+                              placeholder={t("generate.topicPlaceholder")}
+                              maxLength={300}
+                              showCount
+                              style={{
+                                borderRadius: 8,
+                                paddingRight: 42,
+                                paddingBottom: 34,
+                              }}
+                            />
+                            <Tooltip title={t("generate.suggestTopicTooltip")}>
+                              <Button
+                                shape="circle"
+                                type="primary"
+                                icon={<BulbOutlined />}
+                                loading={isSuggestingTopic}
+                                onClick={handleSuggestTopic}
+                                className="absolute! right-2 bottom-2 z-10"
+                                style={{
+                                  background:
+                                    "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                                  borderColor: "#d97706",
+                                }}
+                              />
+                            </Tooltip>
+                          </div>
+                        </Form.Item>
+                        <Text type="secondary" className="text-xs -mt-2 block">
+                          {t("generate.topicModeAutoHelp")}
+                        </Text>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "common",
+                    label: t("generate.topicModeCommon"),
+                    children: (
+                      <Form.Item
+                        label={
+                          <span className="font-medium">
+                            {t("generate.commonTopicsLabel")}
+                          </span>
+                        }
+                      >
+                        <Select
+                          placeholder={t("generate.commonTopicsPlaceholder")}
+                          options={commonTopicOptions}
+                          onChange={(value) =>
+                            form.setFieldValue("topic", t(`generate.commonTopics.${value}`))
+                          }
+                          allowClear
+                          style={{ width: "100%" }}
+                        />
+                      </Form.Item>
+                    ),
+                  },
+                ]}
               />
-            </Form.Item>
+            </div>
 
             <Divider className="my-3" />
 
@@ -391,6 +519,16 @@ export function GeneratePostsModal({
                 </Checkbox>
               </Form.Item>
             </div>
+            <Form.Item name="includeContactCta" valuePropName="checked">
+              <Checkbox disabled={!hasAnyContact}>
+                <span className="text-sm">{t("generate.includeContactCta")}</span>
+              </Checkbox>
+            </Form.Item>
+            {!hasAnyContact && (
+              <Text type="secondary" className="text-xs block -mt-2 mb-2">
+                {t("generate.contactInfoMissing")}
+              </Text>
+            )}
             <Form.Item
               noStyle
               shouldUpdate={(prevValues, nextValues) =>

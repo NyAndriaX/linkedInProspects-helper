@@ -26,6 +26,12 @@ export interface UserProfile {
   // Posting preferences
   postingFrequency: PostingFrequency;
   preferredPostTypes: PostType[];
+
+  // Contact information
+  phone: string;
+  githubUrl: string;
+  portfolioUrl: string;
+  linkedInProfileUrl: string;
 }
 
 export type ContentGoal =
@@ -81,6 +87,10 @@ export const defaultUserProfile: UserProfile = {
   personalBrand: "",
   postingFrequency: "weekly",
   preferredPostTypes: ["text"],
+  phone: "",
+  githubUrl: "",
+  portfolioUrl: "",
+  linkedInProfileUrl: "",
 };
 
 /**

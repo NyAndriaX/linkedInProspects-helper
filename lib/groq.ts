@@ -165,6 +165,10 @@ export interface ProfileData {
   uniqueValue?: string;
   expertise?: string[];
   personalBrand?: string;
+  phone?: string;
+  githubUrl?: string;
+  portfolioUrl?: string;
+  linkedInProfileUrl?: string;
 }
 
 /**
@@ -174,6 +178,7 @@ export interface GenerationOptions {
   topic?: string;
   toneOverride?: string;
   style?: string;
+  includeContactCta?: boolean;
 }
 
 /**
