@@ -159,6 +159,7 @@
       "button": "Generate {count} Post",
       "buttonPlural": "Generate {count} Posts",
       "includeImage": "Include an illustration image",
+      "realisticImage": "Use more realistic images (photo style)",
       "includeImageHelp": "Searches for an image via Unsplash based on the theme.",
       "generating": "AI is generating your posts...",
       "generatingTip": "This may take a few seconds depending on the number requested.",
@@ -432,6 +433,22 @@
       "cancel": "Cancel",
       "enrich": "Enrich",
       "enriching": "Enriching…"
+    },
+    "bulk": {
+      "selectedCount": "{count} selected",
+      "changeStatus": "Change status",
+      "statusUpdated": "{count} prospect(s) updated",
+      "statusUpdateFailed": "Bulk status update failed",
+      "enrich": "Enrich selection",
+      "enriched": "{count} prospect(s) enriched",
+      "enrichNoData": "No enrichment data found",
+      "enrichFailed": "Bulk enrichment failed",
+      "delete": "Delete selection",
+      "deleted": "{count} prospect(s) deleted",
+      "deleteFailed": "Bulk delete failed",
+      "deleteConfirm": "Delete all selected prospects?",
+      "clearSelection": "Clear selection",
+      "noEnrichable": "None of the selected prospects can be enriched"
     },
     "enrich": {
       "success": "Prospect enriched successfully!",

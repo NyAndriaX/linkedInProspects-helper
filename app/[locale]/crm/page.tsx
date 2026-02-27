@@ -22,7 +22,7 @@ import {
   Empty,
   Space,
 } from "antd";
-import type { ColumnsType } from "antd/es/table";
+import type { ColumnsType, TableRowSelection } from "antd/es/table";
 import type { MenuProps } from "antd";
 import {
   PlusOutlined,
@@ -241,10 +241,12 @@ export default function CrmPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchText, setSearchText] = useState("");
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProspect, setEditingProspect] = useState<Prospect | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   const [enrichingId, setEnrichingId] = useState<string | null>(null);
   const [form] = Form.useForm();
 
@@ -387,6 +389,128 @@ export default function CrmPage() {
       fetchProspects();
     } catch {
       messageApi.error(t("messages.updateFailed"));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedRowKeys([]);
+  };
+
+  const handleBulkStatus = async (newStatus: string) => {
+    if (selectedRowKeys.length === 0) return;
+    setIsBulkProcessing(true);
+    try {
+      const results = await Promise.allSettled(
+        selectedRowKeys.map((id) =>
+          fetch(`/api/prospects/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: newStatus }),
+          })
+        )
+      );
+
+      const successCount = results.filter(
+        (result) => result.status === "fulfilled" && result.value.ok
+      ).length;
+      if (successCount > 0) {
+        messageApi.success(
+          t("bulk.statusUpdated", {
+            count: successCount,
+          })
+        );
+      } else {
+        messageApi.error(t("bulk.statusUpdateFailed"));
+      }
+      clearSelection();
+      fetchProspects();
+    } catch {
+      messageApi.error(t("bulk.statusUpdateFailed"));
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedRowKeys.length === 0) return;
+    setIsBulkProcessing(true);
+    try {
+      const results = await Promise.allSettled(
+        selectedRowKeys.map((id) =>
+          fetch(`/api/prospects/${id}`, {
+            method: "DELETE",
+          })
+        )
+      );
+
+      const successCount = results.filter(
+        (result) => result.status === "fulfilled" && result.value.ok
+      ).length;
+      if (successCount > 0) {
+        messageApi.success(
+          t("bulk.deleted", {
+            count: successCount,
+          })
+        );
+      } else {
+        messageApi.error(t("bulk.deleteFailed"));
+      }
+      clearSelection();
+      fetchProspects();
+      fetchReminders();
+    } catch {
+      messageApi.error(t("bulk.deleteFailed"));
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
+
+  const handleBulkEnrich = async () => {
+    if (selectedRowKeys.length === 0) return;
+    const selectedProspects = prospects.filter((prospect) =>
+      selectedRowKeys.includes(prospect.id)
+    );
+    const enrichableProspects = selectedProspects.filter(
+      (prospect) => prospect.email || prospect.company
+    );
+
+    if (enrichableProspects.length === 0) {
+      messageApi.warning(t("bulk.noEnrichable"));
+      return;
+    }
+
+    setIsBulkProcessing(true);
+    try {
+      const results = await Promise.allSettled(
+        enrichableProspects.map((prospect) =>
+          fetch("/api/enrich-prospect", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prospectId: prospect.id }),
+          })
+        )
+      );
+
+      const successCount = results.filter((result) => {
+        if (result.status !== "fulfilled" || !result.value.ok) return false;
+        return true;
+      }).length;
+
+      if (successCount > 0) {
+        messageApi.success(
+          t("bulk.enriched", {
+            count: successCount,
+          })
+        );
+      } else {
+        messageApi.info(t("bulk.enrichNoData"));
+      }
+      clearSelection();
+      fetchProspects();
+    } catch {
+      messageApi.error(t("bulk.enrichFailed"));
+    } finally {
+      setIsBulkProcessing(false);
     }
   };
 
@@ -924,6 +1048,12 @@ export default function CrmPage() {
     })),
   ];
 
+  const rowSelection: TableRowSelection<Prospect> = {
+    selectedRowKeys,
+    onChange: (keys) => setSelectedRowKeys(keys as string[]),
+    preserveSelectedRowKeys: true,
+  };
+
   return (
     <MainLayout>
       {contextHolder}
@@ -1128,10 +1258,59 @@ export default function CrmPage() {
           className="rounded-xl overflow-hidden"
           style={{ background: "#fff", border: "1px solid #e5e7eb" }}
         >
+          {selectedRowKeys.length > 0 && (
+            <div
+              className="px-4 py-3 flex flex-wrap items-center gap-2"
+              style={{ borderBottom: "1px solid #f0f0f0", background: "#fafafa" }}
+            >
+              <Text strong style={{ fontSize: 13 }}>
+                {t("bulk.selectedCount", { count: selectedRowKeys.length })}
+              </Text>
+              <Select
+                size="small"
+                style={{ minWidth: 170 }}
+                placeholder={t("bulk.changeStatus")}
+                onChange={handleBulkStatus}
+                disabled={isBulkProcessing}
+                options={STATUS_KEYS.map((key) => ({
+                  value: key,
+                  label: t(`status.${key}`),
+                }))}
+              />
+              <Button
+                size="small"
+                icon={<ThunderboltOutlined />}
+                onClick={handleBulkEnrich}
+                loading={isBulkProcessing}
+              >
+                {t("bulk.enrich")}
+              </Button>
+              <Popconfirm
+                title={t("bulk.deleteConfirm")}
+                onConfirm={handleBulkDelete}
+                okText={t("actions.delete")}
+                cancelText={t("actions.cancel")}
+                okButtonProps={{ danger: true }}
+              >
+                <Button
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  loading={isBulkProcessing}
+                >
+                  {t("bulk.delete")}
+                </Button>
+              </Popconfirm>
+              <Button size="small" type="text" onClick={clearSelection}>
+                {t("bulk.clearSelection")}
+              </Button>
+            </div>
+          )}
           <Table
             columns={columns}
             dataSource={prospects}
             rowKey="id"
+            rowSelection={rowSelection}
             loading={isLoading}
             pagination={{
               pageSize: 15,

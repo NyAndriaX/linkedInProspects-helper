@@ -10,6 +10,7 @@ interface GenerateRequest {
   style?: string;
   preview?: boolean;
   includeImage?: boolean;
+  realisticImage?: boolean;
 }
 
 /**
@@ -112,7 +113,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse request body
-    const { count = 1, topic, toneOverride, style, preview = false, includeImage = false }: GenerateRequest = await request.json();
+    const {
+      count = 1,
+      topic,
+      toneOverride,
+      style,
+      preview = false,
+      includeImage = false,
+      realisticImage = true,
+    }: GenerateRequest = await request.json();
 
     // Validate count
     if (count < 1 || count > 10) {
@@ -230,11 +239,14 @@ export async function POST(request: NextRequest) {
         // 3. The user's industry
         // 4. A generic fallback
         const titleKeywords = extractSearchKeywords(post.title || "");
+        const realismSuffix = realisticImage ? " realistic photo" : "";
         const queries = [
-          titleKeywords,
-          topicKeyword,
-          industryKeyword,
-          "professional business technology",
+          `${titleKeywords}${realismSuffix}`.trim(),
+          `${topicKeyword}${realismSuffix}`.trim(),
+          `${industryKeyword}${realismSuffix}`.trim(),
+          realisticImage
+            ? "professional business workplace realistic photo"
+            : "professional business technology",
         ].filter(Boolean);
 
         return fetchUnsplashImage(queries, index);

@@ -122,6 +122,7 @@ export function GeneratePostsModal({
           toneOverride: values.tone !== profileTone ? values.tone : undefined,
           style: values.style !== "auto" ? values.style : undefined,
           includeImage: values.includeImage || false,
+          realisticImage: values.realisticImage !== false,
           preview: true,
         }),
       });
@@ -313,6 +314,7 @@ export function GeneratePostsModal({
               tone: profileTone,
               style: "auto",
               includeImage: false,
+              realisticImage: true,
             }}
             onFinish={handleGenerate}
             requiredMark={false}
@@ -389,6 +391,22 @@ export function GeneratePostsModal({
                 </Checkbox>
               </Form.Item>
             </div>
+            <Form.Item
+              noStyle
+              shouldUpdate={(prevValues, nextValues) =>
+                prevValues.includeImage !== nextValues.includeImage
+              }
+            >
+              {({ getFieldValue }) =>
+                getFieldValue("includeImage") ? (
+                  <Form.Item name="realisticImage" valuePropName="checked">
+                    <Checkbox>
+                      <span className="text-sm">{t("generate.realisticImage")}</span>
+                    </Checkbox>
+                  </Form.Item>
+                ) : null
+              }
+            </Form.Item>
 
             <Divider className="my-3" />
 

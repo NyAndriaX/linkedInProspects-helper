@@ -159,6 +159,7 @@
       "button": "Générer {count} publication",
       "buttonPlural": "Générer {count} publications",
       "includeImage": "Inclure une image d'illustration",
+      "realisticImage": "Utiliser des images plus réalistes (style photo)",
       "includeImageHelp": "Recherche une image via Unsplash basée sur le thème.",
       "generating": "L'IA génère vos publications...",
       "generatingTip": "Cela peut prendre quelques secondes selon le nombre demandé.",
@@ -432,6 +433,22 @@
       "cancel": "Annuler",
       "enrich": "Enrichir",
       "enriching": "Enrichissement…"
+    },
+    "bulk": {
+      "selectedCount": "{count} sélectionné(s)",
+      "changeStatus": "Changer le statut",
+      "statusUpdated": "{count} prospect(s) mis à jour",
+      "statusUpdateFailed": "Échec de la mise à jour en masse",
+      "enrich": "Enrichir la sélection",
+      "enriched": "{count} prospect(s) enrichi(s)",
+      "enrichNoData": "Aucune donnée d'enrichissement trouvée",
+      "enrichFailed": "Échec de l'enrichissement en masse",
+      "delete": "Supprimer la sélection",
+      "deleted": "{count} prospect(s) supprimé(s)",
+      "deleteFailed": "Échec de la suppression en masse",
+      "deleteConfirm": "Supprimer tous les prospects sélectionnés ?",
+      "clearSelection": "Effacer la sélection",
+      "noEnrichable": "Aucun prospect sélectionné ne peut être enrichi"
     },
     "enrich": {
       "success": "Prospect enrichi avec succès !",
