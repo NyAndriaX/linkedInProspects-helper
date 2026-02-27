@@ -1,7 +1,14 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ApiResponse, getAuthenticatedSession } from "@/lib/api-utils";
-import { getGroqClient, GROQ_MODEL, buildPostGenerationPrompt, parseGeneratedPosts, ProfileData, GenerationOptions } from "@/lib/groq";
+import {
+  getGroqClient,
+  GROQ_MODEL,
+  buildPostGenerationPrompt,
+  parseGeneratedPosts,
+  ProfileData,
+  GenerationOptions,
+} from "@/lib/groq";
 
 interface GenerateRequest {
   count: number;
@@ -22,6 +29,16 @@ interface ContactData {
   portfolioUrl?: string | null;
   linkedInProfileUrl?: string | null;
 }
+
+interface ThemeBrief {
+  trends: string[];
+  tools: string[];
+  angles: string[];
+}
+
+type GenerationOptionsWithThemeBrief = GenerationOptions & {
+  commonThemeBrief?: ThemeBrief;
+};
 
 function hasAnyContact(contact: ContactData): boolean {
   return Boolean(
@@ -63,6 +80,76 @@ function buildContactCta(contact: ContactData, language: "fr" | "en"): string {
       ? "📩 Si vous souhaitez collaborer avec moi, contactez-moi:"
       : "📩 If you would like to collaborate with me, contact me:";
   return `${intro} ${parts.join(" | ")}`;
+}
+
+function parseThemeBrief(content: string): ThemeBrief | null {
+  try {
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    const parsed = JSON.parse(jsonMatch[0]) as Partial<ThemeBrief>;
+
+    const trends = Array.isArray(parsed.trends)
+      ? parsed.trends.filter((item): item is string => typeof item === "string")
+      : [];
+    const tools = Array.isArray(parsed.tools)
+      ? parsed.tools.filter((item): item is string => typeof item === "string")
+      : [];
+    const angles = Array.isArray(parsed.angles)
+      ? parsed.angles.filter((item): item is string => typeof item === "string")
+      : [];
+
+    if (trends.length === 0 && tools.length === 0 && angles.length === 0) {
+      return null;
+    }
+    return { trends, tools, angles };
+  } catch {
+    return null;
+  }
+}
+
+async function buildThemeBrief(params: {
+  selectedTheme: string;
+  industry: string;
+  language: "fr" | "en";
+}): Promise<ThemeBrief | null> {
+  const prompt =
+    params.language === "fr"
+      ? `Crée un brief ultra concret pour un post LinkedIn sur la thématique "${params.selectedTheme}" dans le secteur "${params.industry}".
+Retourne STRICTEMENT un objet JSON:
+{
+  "trends": ["...","...","..."],
+  "tools": ["...","...","..."],
+  "angles": ["...","...","..."]
+}
+Règles:
+- trends: 3 tendances / nouveautés récentes et réalistes
+- tools: 3 technologies/frameworks/outils concrets liés au thème
+- angles: 3 angles de contenu utiles (comparaison, perf, sécurité, bonnes pratiques, retour d'expérience...)
+- français, court, précis, sans blabla, sans markdown`
+      : `Create a very concrete brief for a LinkedIn post on "${params.selectedTheme}" in the "${params.industry}" industry.
+Return STRICTLY a JSON object:
+{
+  "trends": ["...","...","..."],
+  "tools": ["...","...","..."],
+  "angles": ["...","...","..."]
+}
+Rules:
+- trends: 3 realistic recent trends/updates
+- tools: 3 concrete technologies/frameworks/tools related to the theme
+- angles: 3 practical content angles (comparison, performance, security, best practices, field feedback...)
+- concise, no markdown`;
+
+  const completion = await getGroqClient().chat.completions.create({
+    model: GROQ_MODEL,
+    messages: [
+      { role: "system", content: "Return valid JSON only." },
+      { role: "user", content: prompt },
+    ],
+    temperature: 0.3,
+    max_tokens: 500,
+  });
+
+  return parseThemeBrief(completion.choices[0]?.message?.content || "");
 }
 
 /**
@@ -249,10 +336,21 @@ export async function POST(request: NextRequest) {
     };
 
     // Build generation options from request
-    const generationOptions: GenerationOptions = {};
+    const generationOptions: GenerationOptionsWithThemeBrief = {};
     if (topic) generationOptions.topic = topic;
     if (topicSource) generationOptions.topicSource = topicSource;
     if (selectedTheme) generationOptions.selectedTheme = selectedTheme;
+    if (topicSource === "common" && selectedTheme) {
+      const language = user.preferredLanguage === "en" ? "en" : "fr";
+      const themeBrief = await buildThemeBrief({
+        selectedTheme,
+        industry: user.industry || "Technology / IT",
+        language,
+      });
+      if (themeBrief) {
+        generationOptions.commonThemeBrief = themeBrief;
+      }
+    }
     if (toneOverride) generationOptions.toneOverride = toneOverride;
     if (style) generationOptions.style = style;
     generationOptions.includeContactCta = includeContactCta;

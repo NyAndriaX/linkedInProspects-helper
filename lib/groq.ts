@@ -76,16 +76,23 @@ Generate posts on DIFFERENT and FRESH topics.\n`
     options?.topicSource === "common" && options?.selectedTheme
       ? `\n## COMMON THEME MODE (HIGH PRIORITY)
 Selected theme: ${options.selectedTheme}
+${options.commonThemeBrief
+  ? `Theme brief:
+- Trends: ${options.commonThemeBrief.trends.join(", ") || "N/A"}
+- Concrete tools/tech: ${options.commonThemeBrief.tools.join(", ") || "N/A"}
+- Content angles: ${options.commonThemeBrief.angles.join(", ") || "N/A"}`
+  : ""}
 
 For this mode, strictly follow these rules:
 1. Identify current, trending, and relevant subtopics within this selected theme.
 2. Pick an interesting angle: recent updates, best practices, real feedback, comparisons, performance, security, or architecture.
-3. Write a professional LinkedIn post that shares clear know-how and practical value.
-4. You may reference recent updates/news if relevant, but keep it concise and understandable.
-5. Keep the tone professional, modern, accessible, and suitable for an IT developer profile.
-6. Prefer a natural human style (not robotic).
-7. Write in 8 to 15 short lines.
-8. End with an engaging question when relevant to spark comments.
+3. Use at least 2 concrete references (frameworks, tools, updates, or methods) related to the selected theme.
+4. Write a professional LinkedIn post that shares clear know-how and practical value.
+5. Prefer recent updates/news if relevant, but keep it concise and understandable.
+6. Keep the tone professional, modern, accessible, and suitable for an IT developer profile.
+7. Prefer a natural human style (not robotic).
+8. Write in 8 to 15 short lines.
+9. End with an engaging question when relevant to spark comments.
 `
       : "";
 
@@ -195,6 +202,11 @@ export interface GenerationOptions {
   topic?: string;
   topicSource?: "auto" | "common";
   selectedTheme?: string;
+  commonThemeBrief?: {
+    trends: string[];
+    tools: string[];
+    angles: string[];
+  };
   toneOverride?: string;
   style?: string;
   includeContactCta?: boolean;
