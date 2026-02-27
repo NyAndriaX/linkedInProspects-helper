@@ -299,7 +299,15 @@ export function GeneratePostsModal({
         return;
       }
 
-      form.setFieldValue("topic", firstIdea.hook);
+      const suggestedTopic = String(firstIdea.hook).trim();
+      if (!suggestedTopic) {
+        messageApi.warning(t("generate.topicSuggestionEmpty"));
+        return;
+      }
+
+      // Always show the generated topic in the Auto tab input.
+      setTopicInputMode("auto");
+      form.setFieldsValue({ topic: suggestedTopic });
       messageApi.success(t("generate.topicSuggested"));
     } catch (error) {
       messageApi.error(
