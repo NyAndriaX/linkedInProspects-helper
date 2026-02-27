@@ -22,7 +22,8 @@ import {
   Empty,
   Space,
 } from "antd";
-import type { ColumnsType, TableRowSelection } from "antd/es/table";
+import type { ColumnsType } from "antd/es/table";
+import type { TableRowSelection } from "antd/es/table/interface";
 import type { MenuProps } from "antd";
 import {
   PlusOutlined,

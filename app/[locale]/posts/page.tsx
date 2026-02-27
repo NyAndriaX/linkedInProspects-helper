@@ -33,6 +33,7 @@ import {
 import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
 import type { ColumnsType } from "antd/es/table";
+import type { TableRowSelection } from "antd/es/table/interface";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { usePosts } from "@/hooks/usePosts";
 import { useProfile } from "@/hooks/useProfile";
@@ -49,7 +50,7 @@ export default function PostsPage() {
   const tStatus = useTranslations("postStatus");
   const { data: session } = useSession();
   
-  const { isLoading, isPublishing, addPost, updatePost, deletePost, publishPost, filterByStatus, refetch } =
+  const { posts, isLoading, isPublishing, addPost, updatePost, deletePost, publishPost, filterByStatus, refetch } =
     usePosts();
   const { isProfileComplete, profile } = useProfile();
   const [messageApi, contextHolder] = message.useMessage();
@@ -62,6 +63,8 @@ export default function PostsPage() {
   const [form] = Form.useForm();
   const [isMobile, setIsMobile] = useState(false);
   const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -123,6 +126,99 @@ export default function PostsPage() {
     } else {
       messageApi.error(result.error || t("messages.publishFailed"));
     }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedRowKeys.length === 0) return;
+    setIsBulkProcessing(true);
+    try {
+      const results = await Promise.all(
+        selectedRowKeys.map((id) => deletePost(id))
+      );
+      const successCount = results.filter(Boolean).length;
+      if (successCount > 0) {
+        messageApi.success(t("bulk.deleted", { count: successCount }));
+      } else {
+        messageApi.error(t("bulk.deleteFailed"));
+      }
+      setSelectedRowKeys([]);
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
+
+  const handleBulkStatus = async (status: PostStatus) => {
+    if (selectedRowKeys.length === 0) return;
+    setIsBulkProcessing(true);
+    try {
+      const results = await Promise.all(
+        selectedRowKeys.map((id) => updatePost(id, { status }))
+      );
+      const successCount = results.filter(Boolean).length;
+      if (successCount > 0) {
+        messageApi.success(t("bulk.statusUpdated", { count: successCount }));
+      } else {
+        messageApi.error(t("bulk.statusFailed"));
+      }
+      setSelectedRowKeys([]);
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
+
+  const handleBulkPublish = async () => {
+    if (selectedRowKeys.length === 0) return;
+
+    const selectedPosts = posts.filter((post) =>
+      selectedRowKeys.includes(post.id)
+    );
+    const readyPosts = selectedPosts.filter((post) => post.status === "ready");
+    const skippedDraftCount = selectedPosts.filter(
+      (post) => post.status === "draft"
+    ).length;
+    const skippedPublishedCount = selectedPosts.filter(
+      (post) => post.status === "published"
+    ).length;
+
+    if (readyPosts.length === 0) {
+      messageApi.warning(t("bulk.publishNoReady"));
+      return;
+    }
+
+    setIsBulkProcessing(true);
+    try {
+      let successCount = 0;
+      for (const post of readyPosts) {
+        const result = await publishPost(post.id);
+        if (result.success) successCount += 1;
+      }
+
+      if (successCount > 0) {
+        messageApi.success(t("bulk.published", { count: successCount }));
+      } else {
+        messageApi.error(t("bulk.publishFailed"));
+      }
+
+      if (skippedDraftCount > 0) {
+        messageApi.info(
+          t("bulk.publishSkippedDraft", { count: skippedDraftCount })
+        );
+      }
+      if (skippedPublishedCount > 0) {
+        messageApi.info(
+          t("bulk.publishSkippedPublished", { count: skippedPublishedCount })
+        );
+      }
+
+      setSelectedRowKeys([]);
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
+
+  const rowSelection: TableRowSelection<Post> = {
+    selectedRowKeys,
+    onChange: (keys) => setSelectedRowKeys(keys as string[]),
   };
 
   const columns: ColumnsType<Post> = [
@@ -302,6 +398,54 @@ export default function PostsPage() {
               </Link>
             )}
           </div>
+          {selectedRowKeys.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+              <Text strong>{t("bulk.selected", { count: selectedRowKeys.length })}</Text>
+              <Select
+                placeholder={t("bulk.changeStatus")}
+                style={{ width: isMobile ? "100%" : 180 }}
+                onChange={(value) => handleBulkStatus(value)}
+                disabled={isBulkProcessing}
+                options={[
+                  { value: "draft", label: t("filter.draft") },
+                  { value: "ready", label: t("filter.ready") },
+                  { value: "published", label: t("filter.published") },
+                ]}
+              />
+              <Popconfirm
+                title={t("bulk.publishConfirm")}
+                onConfirm={handleBulkPublish}
+                okText={tCommon("publish")}
+                cancelText={tCommon("cancel")}
+              >
+                <Button
+                  type="primary"
+                  icon={<SendOutlined />}
+                  loading={isBulkProcessing}
+                  style={{ background: "#6366f1", borderColor: "#6366f1" }}
+                >
+                  {t("bulk.publishSelected")}
+                </Button>
+              </Popconfirm>
+              <Popconfirm
+                title={t("bulk.deleteConfirm")}
+                onConfirm={handleBulkDelete}
+                okText={tCommon("yes")}
+                cancelText={tCommon("no")}
+              >
+                <Button
+                  danger
+                  icon={<DeleteOutlined />}
+                  loading={isBulkProcessing}
+                >
+                  {t("bulk.deleteSelected")}
+                </Button>
+              </Popconfirm>
+              <Button type="text" onClick={() => setSelectedRowKeys([])}>
+                {t("bulk.clearSelection")}
+              </Button>
+            </div>
+          )}
         </Card>
 
         {/* Table */}
@@ -310,6 +454,7 @@ export default function PostsPage() {
             columns={columns}
             dataSource={filteredPosts}
             rowKey="id"
+            rowSelection={rowSelection}
             loading={isLoading}
             scroll={{ x: isMobile ? 600 : undefined }}
             size={isMobile ? "small" : "middle"}
