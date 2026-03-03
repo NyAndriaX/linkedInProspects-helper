@@ -1,5 +1,7 @@
 import axios, { AxiosError } from "axios";
 import https from "https";
+import path from "path";
+import { readFile } from "fs/promises";
 
 // HTTPS agent that forces IPv4 to avoid connection issues
 const httpsAgent = new https.Agent({
@@ -11,6 +13,15 @@ const httpsAgent = new https.Agent({
 const LINKEDIN_API_BASE = "https://api.linkedin.com/rest";
 const LINKEDIN_VERSION = "202504";
 const REQUEST_TIMEOUT = 30000; // 30 seconds
+const LOCAL_POST_IMAGE_PREFIX = "/uploads/posts/";
+const LOCAL_UPLOADS_ROOT = path.resolve(process.cwd(), "public", "uploads", "posts");
+const MIME_BY_EXTENSION: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+};
 
 /**
  * LinkedIn API client for the new REST Posts API
@@ -146,15 +157,24 @@ export async function uploadImageToLinkedIn(
 ): Promise<void> {
   console.log(`[LinkedIn Image] Downloading image from: ${imageUrl}`);
 
-  // Download the image as a buffer
-  const imageResponse = await axios.get(imageUrl, {
-    responseType: "arraybuffer",
-    timeout: REQUEST_TIMEOUT,
-    httpsAgent,
-  });
+  let imageBuffer: Buffer;
+  let contentType = "image/jpeg";
 
-  const imageBuffer = Buffer.from(imageResponse.data);
-  const contentType = imageResponse.headers["content-type"] || "image/jpeg";
+  const localPath = resolveLocalPostImagePath(imageUrl);
+  if (localPath) {
+    imageBuffer = await readFile(localPath);
+    const extension = path.extname(localPath).replace(".", "").toLowerCase();
+    contentType = MIME_BY_EXTENSION[extension] || contentType;
+  } else {
+    // Download remote image as a buffer
+    const imageResponse = await axios.get(imageUrl, {
+      responseType: "arraybuffer",
+      timeout: REQUEST_TIMEOUT,
+      httpsAgent,
+    });
+    imageBuffer = Buffer.from(imageResponse.data);
+    contentType = imageResponse.headers["content-type"] || contentType;
+  }
 
   console.log(
     `[LinkedIn Image] Uploading ${imageBuffer.length} bytes to LinkedIn...`
@@ -172,6 +192,27 @@ export async function uploadImageToLinkedIn(
   });
 
   console.log("[LinkedIn Image] Image uploaded successfully");
+}
+
+function resolveLocalPostImagePath(imageUrl: string): string | null {
+  const raw = String(imageUrl || "").trim();
+  if (!raw) return null;
+
+  let pathname = raw;
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      pathname = new URL(raw).pathname;
+    } catch {
+      return null;
+    }
+  }
+
+  if (!pathname.startsWith(LOCAL_POST_IMAGE_PREFIX)) return null;
+
+  const relativePath = pathname.replace(/^\/+/, "");
+  const absolutePath = path.resolve(process.cwd(), "public", relativePath);
+  if (!absolutePath.startsWith(LOCAL_UPLOADS_ROOT)) return null;
+  return absolutePath;
 }
 
 function delay(ms: number): Promise<void> {

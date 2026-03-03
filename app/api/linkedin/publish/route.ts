@@ -11,7 +11,6 @@ import {
   prepareLinkedInImages,
   handleLinkedInError,
 } from "@/lib/linkedin";
-import { toAbsolutePostImageUrl } from "@/lib/post-image-url";
 
 interface PublishRequest {
   content: string;
@@ -22,11 +21,29 @@ interface PublishRequest {
 
 const LINKEDIN_MAX_COMMENTARY_LENGTH = 3000;
 
+function sanitizeLinkedInCommentary(content: string): string {
+  let normalized = content;
+
+  // Convert markdown links to plain text to avoid little-text parsing issues.
+  normalized = normalized.replace(
+    /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
+    "$1: $2"
+  );
+
+  // Convert markdown bullet style to plain bullets.
+  normalized = normalized.replace(/^\s*\*\s+/gm, "- ");
+
+  // Escape little-text reserved characters that can truncate rendering.
+  normalized = normalized.replace(/([\\\[\]\(\)])/g, "\\$1");
+
+  return normalized;
+}
+
 function normalizeLinkedInCommentary(content: string): {
   commentary: string;
   warning?: string;
 } {
-  const trimmed = content.trim();
+  const trimmed = sanitizeLinkedInCommentary(content).trim();
   if (trimmed.length <= LINKEDIN_MAX_COMMENTARY_LENGTH) {
     return { commentary: trimmed };
   }
@@ -98,11 +115,8 @@ export async function POST(request: NextRequest) {
     // If there's an image, upload it to LinkedIn first
     let postBody;
     if (imageCandidates.length > 0) {
-      const normalizedImageUrls = imageCandidates.map((candidateImageUrl) =>
-        toAbsolutePostImageUrl(candidateImageUrl, request.nextUrl.origin)
-      );
       const imageAssets = await prepareLinkedInImages(
-        normalizedImageUrls,
+        imageCandidates,
         session.linkedInId,
         session.accessToken
       );
@@ -119,7 +133,7 @@ export async function POST(request: NextRequest) {
           commentary,
           imageAssets[0]
         );
-        if (normalizedImageUrls.length > 1) {
+        if (imageCandidates.length > 1) {
           warnings.push(
             "Only one image could be uploaded to LinkedIn. The post was published with one image."
           );

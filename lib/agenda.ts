@@ -1,14 +1,24 @@
 import { Agenda, Job } from "@hokify/agenda";
 import { prisma } from "./prisma";
-import { toAbsolutePostImageUrl } from "./post-image-url";
 
 const LINKEDIN_MAX_COMMENTARY_LENGTH = 3000;
+
+function sanitizeLinkedInCommentary(content: string): string {
+  let normalized = content;
+  normalized = normalized.replace(
+    /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
+    "$1: $2"
+  );
+  normalized = normalized.replace(/^\s*\*\s+/gm, "- ");
+  normalized = normalized.replace(/([\\\[\]\(\)])/g, "\\$1");
+  return normalized;
+}
 
 function normalizeLinkedInCommentary(content: string): {
   commentary: string;
   wasShortened: boolean;
 } {
-  const trimmed = content.trim();
+  const trimmed = sanitizeLinkedInCommentary(content).trim();
   if (trimmed.length <= LINKEDIN_MAX_COMMENTARY_LENGTH) {
     return { commentary: trimmed, wasShortened: false };
   }
@@ -145,14 +155,8 @@ export async function getAgenda(): Promise<Agenda> {
         // If post has an image, upload it to LinkedIn first
         let postBody;
         if (imageCandidates.length > 0) {
-          const normalizedImageUrls = imageCandidates.map((candidateImageUrl) =>
-            toAbsolutePostImageUrl(
-              candidateImageUrl,
-              process.env.NEXTAUTH_URL || "http://localhost:3000"
-            )
-          );
           const imageAssets = await prepareLinkedInImages(
-            normalizedImageUrls,
+            imageCandidates,
             user.linkedInId,
             account.access_token
           );
@@ -169,7 +173,7 @@ export async function getAgenda(): Promise<Agenda> {
               commentary,
               imageAssets[0]
             );
-            if (normalizedImageUrls.length > 1) {
+            if (imageCandidates.length > 1) {
               console.warn(
                 `[Agenda] Only one image was uploadable for post ${post.id}.`
               );
