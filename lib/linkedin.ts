@@ -146,6 +146,63 @@ export async function uploadImageToLinkedIn(
   console.log("[LinkedIn Image] Image uploaded successfully");
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Wait until LinkedIn marks the uploaded image as AVAILABLE.
+ * This avoids publishing posts before media processing is complete.
+ */
+async function waitForImageAvailability(
+  imageUrn: string,
+  accessToken: string
+): Promise<boolean> {
+  const encodedUrn = encodeURIComponent(imageUrn);
+  const maxAttempts = 8;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const response = await linkedInClient.get(`/images/${encodedUrn}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const status = String(
+        response.data?.status || response.data?.value?.status || ""
+      ).toUpperCase();
+
+      if (status === "AVAILABLE") {
+        console.log(`[LinkedIn Image] Image is AVAILABLE: ${imageUrn}`);
+        return true;
+      }
+
+      if (status === "PROCESSING" || status === "WAITING_UPLOAD" || !status) {
+        console.log(
+          `[LinkedIn Image] Image status ${status || "UNKNOWN"} (attempt ${attempt}/${maxAttempts})`
+        );
+      } else {
+        console.warn(
+          `[LinkedIn Image] Unexpected image status: ${status} for ${imageUrn}`
+        );
+      }
+    } catch (error) {
+      console.warn(
+        `[LinkedIn Image] Failed to fetch image status (attempt ${attempt}/${maxAttempts})`,
+        error
+      );
+    }
+
+    await delay(1500);
+  }
+
+  console.warn(
+    `[LinkedIn Image] Image did not become AVAILABLE in time: ${imageUrn}`
+  );
+  return false;
+}
+
 /**
  * Full flow: initialize upload, download image, upload to LinkedIn, return image URN
  * Returns null if the image upload fails (post can still be published without image)
@@ -161,6 +218,10 @@ export async function prepareLinkedInImage(
       accessToken
     );
     await uploadImageToLinkedIn(imageUrl, uploadUrl, accessToken);
+    const isAvailable = await waitForImageAvailability(imageUrn, accessToken);
+    if (!isAvailable) {
+      return null;
+    }
     return imageUrn;
   } catch (error) {
     console.error(
