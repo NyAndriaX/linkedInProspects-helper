@@ -37,6 +37,16 @@ function normalizeLinkedInCommentary(content: string): {
   };
 }
 
+function getImageCandidates(imageUrl?: string | null, imageUrls?: string[]): string[] {
+  const candidates = [
+    imageUrl || "",
+    ...(Array.isArray(imageUrls) ? imageUrls : []),
+  ]
+    .map((item) => String(item || "").trim())
+    .filter(Boolean);
+  return Array.from(new Set(candidates));
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Validate session
@@ -51,9 +61,7 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const { content, postId, imageUrl, imageUrls }: PublishRequest = await request.json();
-    const primaryImageUrl =
-      imageUrl ||
-      (Array.isArray(imageUrls) && imageUrls.length > 0 ? imageUrls[0] : null);
+    const imageCandidates = getImageCandidates(imageUrl, imageUrls);
     const warnings: string[] = [];
 
     if (!content?.trim()) {
@@ -80,36 +88,45 @@ export async function POST(request: NextRequest) {
 
     console.log(`[LinkedIn Publish] Starting publication for postId: ${postId}`);
     console.log(`[LinkedIn Publish] LinkedIn ID: ${session.linkedInId}`);
-    console.log(`[LinkedIn Publish] Image URL: ${primaryImageUrl || "none"}`);
+    console.log(`[LinkedIn Publish] Image candidates: ${imageCandidates.length}`);
 
     const { commentary, warning: commentaryWarning } =
       normalizeLinkedInCommentary(content);
     if (commentaryWarning) warnings.push(commentaryWarning);
-    if (Array.isArray(imageUrls) && imageUrls.length > 1) {
-      warnings.push("LinkedIn supports one image per post in this flow. Only the first image was used.");
+    if (imageCandidates.length > 1) {
+      warnings.push(
+        "LinkedIn supports one image per post in this flow. The first uploadable image was used."
+      );
     }
 
     // If there's an image, upload it to LinkedIn first
     let postBody;
-    if (primaryImageUrl) {
-      const normalizedImageUrl = toAbsolutePostImageUrl(
-        primaryImageUrl,
-        request.nextUrl.origin
-      );
-      const imageAsset = await prepareLinkedInImage(
-        normalizedImageUrl,
-        session.linkedInId,
-        session.accessToken
-      );
+    if (imageCandidates.length > 0) {
+      let imageAsset: string | null = null;
+      for (const candidateImageUrl of imageCandidates) {
+        const normalizedImageUrl = toAbsolutePostImageUrl(
+          candidateImageUrl,
+          request.nextUrl.origin
+        );
+        imageAsset = await prepareLinkedInImage(
+          normalizedImageUrl,
+          session.linkedInId,
+          session.accessToken
+        );
+        if (imageAsset) {
+          console.log(
+            `[LinkedIn Publish] Image asset ready from candidate: ${candidateImageUrl}`
+          );
+          break;
+        }
+      }
 
       if (imageAsset) {
-        console.log(`[LinkedIn Publish] Image asset ready: ${imageAsset}`);
         postBody = buildPostBodyWithImage(session.linkedInId, commentary, imageAsset);
       } else {
-        // Image upload failed, fall back to text-only post
-        console.warn("[LinkedIn Publish] Image upload failed, publishing text-only");
+        console.warn("[LinkedIn Publish] All image candidates failed, publishing text-only");
         warnings.push(
-          "The image could not be uploaded to LinkedIn. The post was published as text-only."
+          "No selected image could be uploaded to LinkedIn. The post was published as text-only."
         );
         postBody = buildPostBody(session.linkedInId, commentary);
       }

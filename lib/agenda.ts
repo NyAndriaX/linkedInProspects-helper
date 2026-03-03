@@ -18,6 +18,16 @@ function normalizeLinkedInCommentary(content: string): {
   };
 }
 
+function getImageCandidates(imageUrl?: string | null, imageUrls?: string[]): string[] {
+  const candidates = [
+    imageUrl || "",
+    ...(Array.isArray(imageUrls) ? imageUrls : []),
+  ]
+    .map((item) => String(item || "").trim())
+    .filter(Boolean);
+  return Array.from(new Set(candidates));
+}
+
 // Agenda instance (singleton)
 let agendaInstance: Agenda | null = null;
 
@@ -117,11 +127,12 @@ export async function getAgenda(): Promise<Agenda> {
           prepareLinkedInImage,
         } = await import("./linkedin");
 
-        const primaryImageUrl =
-          (Array.isArray((post as { imageUrls?: string[] }).imageUrls) &&
-          (post as { imageUrls?: string[] }).imageUrls!.length > 0
-            ? (post as { imageUrls?: string[] }).imageUrls![0]
-            : post.imageUrl) || null;
+        const imageCandidates = getImageCandidates(
+          post.imageUrl,
+          Array.isArray((post as { imageUrls?: string[] }).imageUrls)
+            ? ((post as { imageUrls?: string[] }).imageUrls as string[])
+            : []
+        );
         const { commentary, wasShortened } = normalizeLinkedInCommentary(post.content);
         if (wasShortened) {
           console.warn(
@@ -131,22 +142,30 @@ export async function getAgenda(): Promise<Agenda> {
 
         // If post has an image, upload it to LinkedIn first
         let postBody;
-        if (primaryImageUrl) {
-          const normalizedImageUrl = toAbsolutePostImageUrl(
-            primaryImageUrl,
-            process.env.NEXTAUTH_URL || "http://localhost:3000"
-          );
-          const imageAsset = await prepareLinkedInImage(
-            normalizedImageUrl,
-            user.linkedInId,
-            account.access_token
-          );
+        if (imageCandidates.length > 0) {
+          let imageAsset: string | null = null;
+          for (const candidateImageUrl of imageCandidates) {
+            const normalizedImageUrl = toAbsolutePostImageUrl(
+              candidateImageUrl,
+              process.env.NEXTAUTH_URL || "http://localhost:3000"
+            );
+            imageAsset = await prepareLinkedInImage(
+              normalizedImageUrl,
+              user.linkedInId,
+              account.access_token
+            );
+            if (imageAsset) {
+              console.log(
+                `[Agenda] Image asset ready from candidate: ${candidateImageUrl}`
+              );
+              break;
+            }
+          }
 
           if (imageAsset) {
-            console.log(`[Agenda] Image asset ready: ${imageAsset}`);
             postBody = buildPostBodyWithImage(user.linkedInId, commentary, imageAsset);
           } else {
-            console.warn("[Agenda] Image upload failed, publishing text-only");
+            console.warn("[Agenda] All image candidates failed, publishing text-only");
             postBody = buildPostBody(user.linkedInId, commentary);
           }
         } else {
