@@ -74,6 +74,36 @@ export function buildPostBodyWithImage(
 }
 
 /**
+ * Build the post body with multiple images for LinkedIn REST Posts API.
+ * Uses content.multiImage.images with image URNs from the Images API.
+ */
+export function buildPostBodyWithImages(
+  linkedInId: string,
+  content: string,
+  imageUrns: string[]
+) {
+  return {
+    author: `urn:li:person:${linkedInId}`,
+    commentary: content,
+    visibility: "PUBLIC",
+    distribution: {
+      feedDistribution: "MAIN_FEED",
+      targetEntities: [],
+      thirdPartyDistributionChannels: [],
+    },
+    content: {
+      multiImage: {
+        images: imageUrns.map((urn) => ({
+          id: urn,
+        })),
+      },
+    },
+    lifecycleState: "PUBLISHED",
+    isReshareDisabledByAuthor: false,
+  };
+}
+
+/**
  * Initialize an image upload with LinkedIn Images API
  * Returns the upload URL and the image URN (urn:li:image:{id})
  */
@@ -112,8 +142,7 @@ export async function registerImageUpload(
  */
 export async function uploadImageToLinkedIn(
   imageUrl: string,
-  uploadUrl: string,
-  accessToken: string
+  uploadUrl: string
 ): Promise<void> {
   console.log(`[LinkedIn Image] Downloading image from: ${imageUrl}`);
 
@@ -134,7 +163,6 @@ export async function uploadImageToLinkedIn(
   // Upload binary to LinkedIn's upload URL
   await axios.put(uploadUrl, imageBuffer, {
     headers: {
-      Authorization: `Bearer ${accessToken}`,
       "Content-Type": contentType,
     },
     timeout: 60000, // 60s for large images
@@ -217,7 +245,7 @@ export async function prepareLinkedInImage(
       linkedInId,
       accessToken
     );
-    await uploadImageToLinkedIn(imageUrl, uploadUrl, accessToken);
+    await uploadImageToLinkedIn(imageUrl, uploadUrl);
     const isAvailable = await waitForImageAvailability(imageUrn, accessToken);
     if (!isAvailable) {
       // Do not hard-fail the image flow if status polling is inconclusive.
@@ -234,6 +262,32 @@ export async function prepareLinkedInImage(
     );
     return null;
   }
+}
+
+/**
+ * Upload multiple images to LinkedIn and return image URNs that succeeded.
+ * LinkedIn MultiImage posts require at least 2 images and support up to 20.
+ */
+export async function prepareLinkedInImages(
+  imageUrls: string[],
+  linkedInId: string,
+  accessToken: string
+): Promise<string[]> {
+  const uniqueUrls = Array.from(
+    new Set(
+      imageUrls.map((item) => String(item || "").trim()).filter(Boolean)
+    )
+  ).slice(0, 20);
+
+  const prepared: string[] = [];
+  for (const imageUrl of uniqueUrls) {
+    const imageUrn = await prepareLinkedInImage(imageUrl, linkedInId, accessToken);
+    if (imageUrn) {
+      prepared.push(imageUrn);
+    }
+  }
+
+  return prepared;
 }
 
 /**

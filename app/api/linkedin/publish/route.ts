@@ -6,7 +6,9 @@ import {
   linkedInClient,
   buildPostBody,
   buildPostBodyWithImage,
+  buildPostBodyWithImages,
   prepareLinkedInImage,
+  prepareLinkedInImages,
   handleLinkedInError,
 } from "@/lib/linkedin";
 import { toAbsolutePostImageUrl } from "@/lib/post-image-url";
@@ -93,36 +95,35 @@ export async function POST(request: NextRequest) {
     const { commentary, warning: commentaryWarning } =
       normalizeLinkedInCommentary(content);
     if (commentaryWarning) warnings.push(commentaryWarning);
-    if (imageCandidates.length > 1) {
-      warnings.push(
-        "LinkedIn supports one image per post in this flow. The first uploadable image was used."
-      );
-    }
-
     // If there's an image, upload it to LinkedIn first
     let postBody;
     if (imageCandidates.length > 0) {
-      let imageAsset: string | null = null;
-      for (const candidateImageUrl of imageCandidates) {
-        const normalizedImageUrl = toAbsolutePostImageUrl(
-          candidateImageUrl,
-          request.nextUrl.origin
-        );
-        imageAsset = await prepareLinkedInImage(
-          normalizedImageUrl,
-          session.linkedInId,
-          session.accessToken
-        );
-        if (imageAsset) {
-          console.log(
-            `[LinkedIn Publish] Image asset ready from candidate: ${candidateImageUrl}`
-          );
-          break;
-        }
-      }
+      const normalizedImageUrls = imageCandidates.map((candidateImageUrl) =>
+        toAbsolutePostImageUrl(candidateImageUrl, request.nextUrl.origin)
+      );
+      const imageAssets = await prepareLinkedInImages(
+        normalizedImageUrls,
+        session.linkedInId,
+        session.accessToken
+      );
 
-      if (imageAsset) {
-        postBody = buildPostBodyWithImage(session.linkedInId, commentary, imageAsset);
+      if (imageAssets.length >= 2) {
+        postBody = buildPostBodyWithImages(
+          session.linkedInId,
+          commentary,
+          imageAssets
+        );
+      } else if (imageAssets.length === 1) {
+        postBody = buildPostBodyWithImage(
+          session.linkedInId,
+          commentary,
+          imageAssets[0]
+        );
+        if (normalizedImageUrls.length > 1) {
+          warnings.push(
+            "Only one image could be uploaded to LinkedIn. The post was published with one image."
+          );
+        }
       } else {
         console.warn("[LinkedIn Publish] All image candidates failed, publishing text-only");
         warnings.push(

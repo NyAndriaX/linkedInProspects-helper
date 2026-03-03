@@ -124,7 +124,9 @@ export async function getAgenda(): Promise<Agenda> {
           linkedInClient,
           buildPostBody,
           buildPostBodyWithImage,
+          buildPostBodyWithImages,
           prepareLinkedInImage,
+          prepareLinkedInImages,
         } = await import("./linkedin");
 
         const imageCandidates = getImageCandidates(
@@ -143,27 +145,35 @@ export async function getAgenda(): Promise<Agenda> {
         // If post has an image, upload it to LinkedIn first
         let postBody;
         if (imageCandidates.length > 0) {
-          let imageAsset: string | null = null;
-          for (const candidateImageUrl of imageCandidates) {
-            const normalizedImageUrl = toAbsolutePostImageUrl(
+          const normalizedImageUrls = imageCandidates.map((candidateImageUrl) =>
+            toAbsolutePostImageUrl(
               candidateImageUrl,
               process.env.NEXTAUTH_URL || "http://localhost:3000"
-            );
-            imageAsset = await prepareLinkedInImage(
-              normalizedImageUrl,
-              user.linkedInId,
-              account.access_token
-            );
-            if (imageAsset) {
-              console.log(
-                `[Agenda] Image asset ready from candidate: ${candidateImageUrl}`
-              );
-              break;
-            }
-          }
+            )
+          );
+          const imageAssets = await prepareLinkedInImages(
+            normalizedImageUrls,
+            user.linkedInId,
+            account.access_token
+          );
 
-          if (imageAsset) {
-            postBody = buildPostBodyWithImage(user.linkedInId, commentary, imageAsset);
+          if (imageAssets.length >= 2) {
+            postBody = buildPostBodyWithImages(
+              user.linkedInId,
+              commentary,
+              imageAssets
+            );
+          } else if (imageAssets.length === 1) {
+            postBody = buildPostBodyWithImage(
+              user.linkedInId,
+              commentary,
+              imageAssets[0]
+            );
+            if (normalizedImageUrls.length > 1) {
+              console.warn(
+                `[Agenda] Only one image was uploadable for post ${post.id}.`
+              );
+            }
           } else {
             console.warn("[Agenda] All image candidates failed, publishing text-only");
             postBody = buildPostBody(user.linkedInId, commentary);
