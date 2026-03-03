@@ -195,6 +195,8 @@ export const ERROR_MESSAGES = {
   FORBIDDEN:
     "Permission denied. Make sure 'Share on LinkedIn' product is enabled in your LinkedIn Developer app.",
   RATE_LIMIT: "Rate limit exceeded. Please try again later.",
+  DUPLICATE_CONTENT:
+    "LinkedIn rejected this post because it is too similar to a previous publication. Update the text (and/or image), then publish again.",
   TIMEOUT: "Connection timeout. Please check your internet connection.",
   DNS_ERROR: "DNS error. Unable to resolve api.linkedin.com",
   NETWORK_ERROR: "Network error. Please try again.",
@@ -223,6 +225,12 @@ export function handleLinkedInError(error: unknown): {
         case 429:
           return { message: ERROR_MESSAGES.RATE_LIMIT, status: 429 };
         default:
+          if (
+            typeof data?.message === "string" &&
+            data.message.toLowerCase().includes("content is a duplicate")
+          ) {
+            return { message: ERROR_MESSAGES.DUPLICATE_CONTENT, status: 409 };
+          }
           return {
             message: data?.message || `LinkedIn API error: ${status}`,
             status,
