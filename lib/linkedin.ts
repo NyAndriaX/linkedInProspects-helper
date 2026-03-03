@@ -220,7 +220,11 @@ export async function prepareLinkedInImage(
     await uploadImageToLinkedIn(imageUrl, uploadUrl, accessToken);
     const isAvailable = await waitForImageAvailability(imageUrn, accessToken);
     if (!isAvailable) {
-      return null;
+      // Do not hard-fail the image flow if status polling is inconclusive.
+      // LinkedIn can still accept the image URN even if availability check lags.
+      console.warn(
+        `[LinkedIn Image] Availability check timed out, proceeding with image URN: ${imageUrn}`
+      );
     }
     return imageUrn;
   } catch (error) {
