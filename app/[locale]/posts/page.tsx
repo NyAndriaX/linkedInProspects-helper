@@ -137,12 +137,24 @@ export default function PostsPage() {
     };
 
     if (editingPost) {
-      updatePost(editingPost.id, payload);
+      const updated = await updatePost(editingPost.id, payload);
+      if (!updated) {
+        messageApi.error(t("messages.updateFailed"));
+        return;
+      }
       messageApi.success(t("messages.updated"));
-    } else {
-      addPost(payload);
-      messageApi.success(t("messages.created"));
+      setIsModalOpen(false);
+      form.resetFields();
+      setAiInstruction("");
+      return;
     }
+
+    const created = await addPost(payload);
+    if (!created) {
+      messageApi.error(t("messages.createFailed"));
+      return;
+    }
+    messageApi.success(t("messages.created"));
     setIsModalOpen(false);
     form.resetFields();
     setAiInstruction("");

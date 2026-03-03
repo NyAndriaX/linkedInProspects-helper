@@ -300,7 +300,9 @@
     },
     "messages": {
       "updated": "Publication mise à jour",
+      "updateFailed": "Échec de la mise à jour de la publication",
       "created": "Publication créée",
+      "createFailed": "Échec de la création de la publication",
       "deleted": "Publication supprimée",
       "publishedSuccess": "Publication publiée sur LinkedIn !",
       "publishFailed": "Échec de la publication",

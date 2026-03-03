@@ -85,23 +85,24 @@ export function usePosts() {
   // Publish a post to LinkedIn (with image support)
   const publishPost = useCallback(
     async (id: string): Promise<PublishResult> => {
-      const post = posts.find((p) => p.id === id);
-      if (!post) {
-        return { success: false, error: "Post not found" };
-      }
-
       setIsPublishing(true);
 
       try {
+        // Always fetch latest server version to avoid publishing stale local edits.
+        const latestPost = await apiClient.get<Post>(`/api/posts/${id}`);
+        if (!latestPost) {
+          return { success: false, error: "Post not found" };
+        }
+
         const primaryImageUrl =
-          post.imageUrls && post.imageUrls.length > 0
-            ? post.imageUrls[0]
-            : post.imageUrl || null;
+          latestPost.imageUrls && latestPost.imageUrls.length > 0
+            ? latestPost.imageUrls[0]
+            : latestPost.imageUrl || null;
         const data = await apiClient.post<PublishResponse>("/api/linkedin/publish", {
-          content: post.content,
+          content: latestPost.content,
           postId: id,
           imageUrl: primaryImageUrl,
-          imageUrls: post.imageUrls || [],
+          imageUrls: latestPost.imageUrls || [],
         });
 
         // Refetch posts to get updated status and linkedInUrn from server
@@ -119,7 +120,7 @@ export function usePosts() {
         setIsPublishing(false);
       }
     },
-    [posts, fetchPosts]
+    [fetchPosts]
   );
 
   // Get post by ID
