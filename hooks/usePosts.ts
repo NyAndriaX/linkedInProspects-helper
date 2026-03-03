@@ -8,12 +8,14 @@ interface PublishResult {
   success: boolean;
   error?: string;
   linkedInPostId?: string;
+  warnings?: string[];
 }
 
 interface PublishResponse {
   success: boolean;
   linkedInPostId?: string;
   error?: string;
+  warnings?: string[];
 }
 
 /**
@@ -91,16 +93,25 @@ export function usePosts() {
       setIsPublishing(true);
 
       try {
+        const primaryImageUrl =
+          post.imageUrls && post.imageUrls.length > 0
+            ? post.imageUrls[0]
+            : post.imageUrl || null;
         const data = await apiClient.post<PublishResponse>("/api/linkedin/publish", {
           content: post.content,
           postId: id,
-          imageUrl: post.imageUrl || null,
+          imageUrl: primaryImageUrl,
+          imageUrls: post.imageUrls || [],
         });
 
         // Refetch posts to get updated status and linkedInUrn from server
         await fetchPosts();
 
-        return { success: true, linkedInPostId: data.linkedInPostId };
+        return {
+          success: true,
+          linkedInPostId: data.linkedInPostId,
+          warnings: data.warnings || [],
+        };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Network error. Please try again.";
         return { success: false, error: message };

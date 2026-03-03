@@ -92,6 +92,7 @@ model Post {
   content   String
   status    String   @default("draft") // draft, ready, published
   imageUrl  String?  // Unsplash illustration image URL
+  imageUrls String[]
   
   linkedInUrn String?  // URN of the LinkedIn post for API calls
 

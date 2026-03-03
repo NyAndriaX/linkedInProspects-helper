@@ -2,6 +2,22 @@ import { Agenda, Job } from "@hokify/agenda";
 import { prisma } from "./prisma";
 import { toAbsolutePostImageUrl } from "./post-image-url";
 
+const LINKEDIN_MAX_COMMENTARY_LENGTH = 3000;
+
+function normalizeLinkedInCommentary(content: string): {
+  commentary: string;
+  wasShortened: boolean;
+} {
+  const trimmed = content.trim();
+  if (trimmed.length <= LINKEDIN_MAX_COMMENTARY_LENGTH) {
+    return { commentary: trimmed, wasShortened: false };
+  }
+  return {
+    commentary: `${trimmed.slice(0, LINKEDIN_MAX_COMMENTARY_LENGTH - 3)}...`,
+    wasShortened: true,
+  };
+}
+
 // Agenda instance (singleton)
 let agendaInstance: Agenda | null = null;
 
@@ -101,11 +117,23 @@ export async function getAgenda(): Promise<Agenda> {
           prepareLinkedInImage,
         } = await import("./linkedin");
 
+        const primaryImageUrl =
+          (Array.isArray((post as { imageUrls?: string[] }).imageUrls) &&
+          (post as { imageUrls?: string[] }).imageUrls!.length > 0
+            ? (post as { imageUrls?: string[] }).imageUrls![0]
+            : post.imageUrl) || null;
+        const { commentary, wasShortened } = normalizeLinkedInCommentary(post.content);
+        if (wasShortened) {
+          console.warn(
+            `[Agenda] Post ${post.id} exceeded LinkedIn's 3000-character limit and was shortened before publish.`
+          );
+        }
+
         // If post has an image, upload it to LinkedIn first
         let postBody;
-        if (post.imageUrl) {
+        if (primaryImageUrl) {
           const normalizedImageUrl = toAbsolutePostImageUrl(
-            post.imageUrl,
+            primaryImageUrl,
             process.env.NEXTAUTH_URL || "http://localhost:3000"
           );
           const imageAsset = await prepareLinkedInImage(
@@ -116,13 +144,13 @@ export async function getAgenda(): Promise<Agenda> {
 
           if (imageAsset) {
             console.log(`[Agenda] Image asset ready: ${imageAsset}`);
-            postBody = buildPostBodyWithImage(user.linkedInId, post.content, imageAsset);
+            postBody = buildPostBodyWithImage(user.linkedInId, commentary, imageAsset);
           } else {
             console.warn("[Agenda] Image upload failed, publishing text-only");
-            postBody = buildPostBody(user.linkedInId, post.content);
+            postBody = buildPostBody(user.linkedInId, commentary);
           }
         } else {
-          postBody = buildPostBody(user.linkedInId, post.content);
+          postBody = buildPostBody(user.linkedInId, commentary);
         }
 
         const response = await linkedInClient.post(

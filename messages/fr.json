@@ -157,7 +157,16 @@
       "statusReady": "Prêt - Prêt à publier",
       "statusPublished": "Publié - Déjà posté",
       "saveChanges": "Enregistrer les modifications",
-      "createPost": "Créer la publication"
+      "createPost": "Créer la publication",
+      "aiAssistLabel": "Assistant IA de réécriture",
+      "aiAssistHelp": "Donnez une consigne simple (ex: ajoute l'URL du projet) et l'IA mettra à jour votre texte.",
+      "aiAssistPlaceholder": "Ex: Ajoute l'URL de mon portfolio à la fin avec une phrase naturelle.",
+      "aiAssistButton": "Appliquer avec l'IA",
+      "aiAssisting": "L'IA modifie le texte...",
+      "aiAssistSuccess": "Le contenu a été mis à jour par l'IA",
+      "aiAssistMissingInstruction": "Veuillez d'abord écrire une consigne pour l'IA",
+      "aiAssistMissingContent": "Veuillez d'abord écrire le contenu du post",
+      "aiAssistFailed": "Impossible de modifier le contenu avec l'IA pour le moment"
     },
     "view": {
       "created": "Créé le :",

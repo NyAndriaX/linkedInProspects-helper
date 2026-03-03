@@ -15,6 +15,7 @@ interface GenerateRequest {
   topic?: string;
   topicSource?: "auto" | "common";
   selectedTheme?: string;
+  selectedThemes?: string[];
   toneOverride?: string;
   style?: string;
   preview?: boolean;
@@ -439,6 +440,7 @@ export async function POST(request: NextRequest) {
       topic,
       topicSource,
       selectedTheme,
+      selectedThemes,
       toneOverride,
       style,
       preview = false,
@@ -519,6 +521,20 @@ export async function POST(request: NextRequest) {
     const existingTitles = existingPosts.map((post) => post.title);
 
     // Build prompt
+    const normalizedSelectedThemes = Array.isArray(selectedThemes)
+      ? selectedThemes
+          .filter((item): item is string => typeof item === "string")
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : [];
+    const effectiveSelectedThemes =
+      normalizedSelectedThemes.length > 0
+        ? normalizedSelectedThemes
+        : selectedTheme?.trim()
+          ? [selectedTheme.trim()]
+          : [];
+    const selectedThemeText = effectiveSelectedThemes.join(", ");
+
     const userSpecialties = Array.isArray(user.specialties)
       ? user.specialties
       : [];
@@ -548,11 +564,14 @@ export async function POST(request: NextRequest) {
     const generationOptions: GenerationOptionsWithThemeBrief = {};
     if (topic) generationOptions.topic = topic;
     if (topicSource) generationOptions.topicSource = topicSource;
-    if (selectedTheme) generationOptions.selectedTheme = selectedTheme;
-    if (topicSource === "common" && selectedTheme) {
+    if (effectiveSelectedThemes.length > 0) {
+      generationOptions.selectedTheme = effectiveSelectedThemes[0];
+      generationOptions.selectedThemes = effectiveSelectedThemes;
+    }
+    if (topicSource === "common" && selectedThemeText) {
       const language = user.preferredLanguage === "en" ? "en" : "fr";
       const themeBrief = await buildThemeBrief({
-        selectedTheme,
+        selectedTheme: selectedThemeText,
         industry: user.industry || "Technology / IT",
         specialties: userSpecialties,
         language,
@@ -617,13 +636,13 @@ export async function POST(request: NextRequest) {
     let finalizedPosts = postsWithContact;
 
     // Quality enforcement for common-theme mode: rewrite weak posts.
-    if (topicSource === "common" && selectedTheme) {
+    if (topicSource === "common" && selectedThemeText) {
       finalizedPosts = await Promise.all(
         postsWithContact.map(async (post) => {
           if (
             isPostSpecificEnough({
               content: post.content,
-              selectedTheme,
+              selectedTheme: selectedThemeText,
               themeBrief: generationOptions.commonThemeBrief,
             })
           ) {
@@ -631,7 +650,7 @@ export async function POST(request: NextRequest) {
           }
           return rewritePostForSpecificity({
             post,
-            selectedTheme,
+            selectedTheme: selectedThemeText,
             language,
             themeBrief: generationOptions.commonThemeBrief,
           });
@@ -640,10 +659,11 @@ export async function POST(request: NextRequest) {
     }
 
     const shouldRunQualityRewrite =
-      finalizedPosts.length > 0 && Boolean(selectedTheme || topic);
+      finalizedPosts.length > 0 && Boolean(selectedThemeText || topic);
 
     if (shouldRunQualityRewrite) {
-      const qualityTheme = selectedTheme || String(topic || "").trim() || "technical topic";
+      const qualityTheme =
+        selectedThemeText || String(topic || "").trim() || "technical topic";
       finalizedPosts = await Promise.all(
         finalizedPosts.map(async (post) => {
           if (
@@ -678,7 +698,7 @@ export async function POST(request: NextRequest) {
       const industryKeyword = user.industry || "";
       const topicKeyword = topic || "";
 
-      const themeKeyword = selectedTheme || "";
+      const themeKeyword = selectedThemeText;
       const themeTools = generationOptions.commonThemeBrief?.tools || [];
       const strictImageMatching = topicSource === "common" && Boolean(themeKeyword);
 

@@ -4,6 +4,7 @@ import path from "path";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { cleanupOrphanedLocalPostImages } from "@/lib/post-images";
 
 export const runtime = "nodejs";
 
@@ -101,6 +102,9 @@ export async function POST(request: Request) {
 
     await mkdir(uploadDir, { recursive: true });
     await writeFile(filePath, fileBuffer);
+
+    // Opportunistic cleanup for abandoned uploads not linked to any post.
+    void cleanupOrphanedLocalPostImages({ gracePeriodMs: 2 * 60 * 60 * 1000, limit: 100 });
 
     return NextResponse.json({
       success: true,

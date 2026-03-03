@@ -12,6 +12,7 @@ export interface Post {
   content: string;
   status: PostStatus;
   imageUrl?: string | null;
+  imageUrls?: string[];
   linkedInUrn?: string | null;
   userId?: string;
   createdAt: string;
@@ -27,6 +28,7 @@ export interface PostFormData {
   content: string;
   status: PostStatus;
   imageUrl?: string | null;
+  imageUrls?: string[];
 }
 
 /**

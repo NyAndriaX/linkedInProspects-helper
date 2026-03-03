@@ -11,6 +11,10 @@ interface CreateScheduleRequest {
   isRecurring?: boolean;
 }
 
+function isValidTimezone(timezone: string): boolean {
+  return Intl.supportedValuesOf("timeZone").includes(timezone);
+}
+
 // GET /api/schedules - List all schedules for the current user
 export async function GET() {
   try {
@@ -65,6 +69,9 @@ export async function POST(request: NextRequest) {
 
     if (!timezone?.trim()) {
       return ApiResponse.badRequest("Timezone is required");
+    }
+    if (!isValidTimezone(timezone)) {
+      return ApiResponse.badRequest("Invalid timezone");
     }
 
     // Create the schedule

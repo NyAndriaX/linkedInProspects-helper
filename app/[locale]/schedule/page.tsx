@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   Table,
@@ -36,7 +36,6 @@ import {
   useSchedules,
   Schedule,
   CreateScheduleData,
-  TIMEZONE_OPTIONS,
 } from "@/hooks/useSchedules";
 
 const { Title, Text, Paragraph } = Typography;
@@ -58,7 +57,24 @@ export default function SchedulePage() {
   const [messageApi, contextHolder] = message.useMessage();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
+  const [timezoneOptions, setTimezoneOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
   const [form] = Form.useForm();
+
+  useEffect(() => {
+    const loadTimezoneOptions = async () => {
+      try {
+        const response = await fetch("/api/options/timezones");
+        const data = await response.json();
+        if (!response.ok) return;
+        setTimezoneOptions(data.options || []);
+      } catch {
+        setTimezoneOptions([]);
+      }
+    };
+    loadTimezoneOptions();
+  }, []);
 
   // Day names from translations
   const dayNames = [
@@ -77,10 +93,17 @@ export default function SchedulePage() {
   }));
 
   const handleCreate = () => {
+    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const defaultTimezone = timezoneOptions.some(
+      (option) => option.value === browserTimezone
+    )
+      ? browserTimezone
+      : "Indian/Antananarivo";
+
     setEditingSchedule(null);
     form.resetFields();
     form.setFieldsValue({
-      timezone: "Europe/Paris",
+      timezone: defaultTimezone,
       isRecurring: true,
       times: [dayjs("09:00", "HH:mm")],
     });
@@ -196,7 +219,7 @@ export default function SchedulePage() {
       key: "timezone",
       render: (tz: string) => (
         <Tag icon={<GlobalOutlined />}>
-          {TIMEZONE_OPTIONS.find((o) => o.value === tz)?.label || tz}
+          {timezoneOptions.find((o) => o.value === tz)?.label || tz}
         </Tag>
       ),
     },
@@ -394,7 +417,7 @@ export default function SchedulePage() {
               rules={[{ required: true, message: t("modal.timezoneRequired") }]}
             >
               <Select
-                options={TIMEZONE_OPTIONS}
+                options={timezoneOptions}
                 placeholder={t("modal.selectTimezone")}
                 showSearch
                 filterOption={(input, option) =>

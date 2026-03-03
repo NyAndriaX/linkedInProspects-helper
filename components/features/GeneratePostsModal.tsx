@@ -128,14 +128,26 @@ export function GeneratePostsModal({
   const handleGenerate = async () => {
     const values = form.getFieldsValue();
 
-    if (topicInputMode === "common" && !values.commonTheme) {
+    const selectedCommonThemes = Array.isArray(values.commonTheme)
+      ? values.commonTheme.filter(
+          (item: unknown): item is string =>
+            typeof item === "string" && item.trim().length > 0
+        )
+      : values.commonTheme
+        ? [String(values.commonTheme)]
+        : [];
+
+    if (topicInputMode === "common" && selectedCommonThemes.length === 0) {
       messageApi.warning(t("generate.commonThemeRequired"));
       return;
     }
 
-    const selectedThemeOption = commonTopicOptions.find(
-      (option) => option.value === values.commonTheme
-    );
+    const selectedThemeLabels = selectedCommonThemes
+      .map((themeValue: string) =>
+        commonTopicOptions.find((option) => option.value === themeValue)?.label ||
+        themeValue
+      )
+      .filter(Boolean);
 
     setIsGenerating(true);
     try {
@@ -147,7 +159,9 @@ export function GeneratePostsModal({
           topic: values.topic || undefined,
           topicSource: topicInputMode,
           selectedTheme:
-            topicInputMode === "common" ? selectedThemeOption?.label : undefined,
+            topicInputMode === "common" ? selectedThemeLabels[0] : undefined,
+          selectedThemes:
+            topicInputMode === "common" ? selectedThemeLabels : undefined,
           toneOverride: values.tone !== profileTone ? values.tone : undefined,
           style: values.style !== "auto" ? values.style : undefined,
           includeImage: values.includeImage || false,
@@ -206,6 +220,7 @@ export function GeneratePostsModal({
               content: buildFullContent(post.content, post.hashtags),
               status: post.status,
               imageUrl: post.imageUrl,
+              imageUrls: post.imageUrl ? [post.imageUrl] : [],
             }),
           })
         )
@@ -236,6 +251,7 @@ export function GeneratePostsModal({
           content: buildFullContent(post.content, post.hashtags),
           status: "ready",
           imageUrl: post.imageUrl,
+          imageUrls: post.imageUrl ? [post.imageUrl] : [],
         }),
       });
       if (!response.ok) throw new Error("Failed to save");
@@ -500,6 +516,7 @@ export function GeneratePostsModal({
                         }
                       >
                         <Select
+                          mode="multiple"
                           placeholder={t("generate.commonTopicsPlaceholder")}
                           options={commonTopicOptions}
                           loading={isLoadingCommonThemes}
@@ -508,7 +525,12 @@ export function GeneratePostsModal({
                               ? t("generate.loadingCommonThemes")
                               : t("generate.noCommonThemes")
                           }
-                          onChange={(value) => form.setFieldValue("topic", value)}
+                          onChange={(value) =>
+                            form.setFieldValue(
+                              "topic",
+                              Array.isArray(value) ? value.join(", ") : ""
+                            )
+                          }
                           allowClear
                           style={{ width: "100%" }}
                         />

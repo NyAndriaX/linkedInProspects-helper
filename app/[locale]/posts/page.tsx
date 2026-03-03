@@ -31,6 +31,7 @@ import {
   UserOutlined,
   GlobalOutlined,
   UploadOutlined,
+  RobotOutlined,
 } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
@@ -43,6 +44,7 @@ import { GeneratePostsModal } from "@/components/features/GeneratePostsModal";
 import { Post, PostStatus, PostFormData, postStatusConfig } from "@/types/post";
 import { Link } from "@/i18n/routing";
 import { toPostImageProxyPath } from "@/lib/post-image-url";
+import { apiClient } from "@/lib/api-client";
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -69,6 +71,15 @@ export default function PostsPage() {
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   const [isImageUploading, setIsImageUploading] = useState(false);
+  const [aiInstruction, setAiInstruction] = useState("");
+  const [isAiEditing, setIsAiEditing] = useState(false);
+
+  const resolvePostImages = (post: Post): string[] => {
+    if (Array.isArray(post.imageUrls) && post.imageUrls.length > 0) {
+      return post.imageUrls;
+    }
+    return post.imageUrl ? [post.imageUrl] : [];
+  };
 
   useEffect(() => {
     const checkMobile = () => {
@@ -85,17 +96,21 @@ export default function PostsPage() {
     setEditingPost(null);
     form.resetFields();
     form.setFieldsValue({ status: "draft" });
+    setAiInstruction("");
     setIsModalOpen(true);
   };
 
   const handleEdit = (post: Post) => {
+    const images = resolvePostImages(post);
     setEditingPost(post);
     form.setFieldsValue({
       title: post.title,
       content: post.content,
       status: post.status,
       imageUrl: post.imageUrl || undefined,
+      imageUrls: images,
     });
+    setAiInstruction("");
     setIsModalOpen(true);
   };
 
@@ -105,9 +120,19 @@ export default function PostsPage() {
   };
 
   const handleSubmit = async (values: PostFormData) => {
+    const normalizedImageUrls = Array.from(
+      new Set(
+        [
+          ...(Array.isArray(values.imageUrls) ? values.imageUrls : []),
+          values.imageUrl?.trim() || "",
+        ].filter(Boolean)
+      )
+    );
+
     const payload: PostFormData = {
       ...values,
-      imageUrl: values.imageUrl?.trim() || null,
+      imageUrl: normalizedImageUrls[0] || null,
+      imageUrls: normalizedImageUrls,
     };
 
     if (editingPost) {
@@ -119,6 +144,42 @@ export default function PostsPage() {
     }
     setIsModalOpen(false);
     form.resetFields();
+    setAiInstruction("");
+  };
+
+  const handleAiAssistEdit = async () => {
+    const content = String(form.getFieldValue("content") || "").trim();
+    const title = String(form.getFieldValue("title") || "").trim();
+    const instruction = aiInstruction.trim();
+
+    if (!instruction) {
+      messageApi.warning(t("modal.aiAssistMissingInstruction"));
+      return;
+    }
+    if (!content) {
+      messageApi.warning(t("modal.aiAssistMissingContent"));
+      return;
+    }
+
+    setIsAiEditing(true);
+    try {
+      const data = await apiClient.post<{ content: string }>(
+        "/api/posts/assist-edit",
+        {
+          title,
+          content,
+          instruction,
+        }
+      );
+      form.setFieldValue("content", data.content);
+      messageApi.success(t("modal.aiAssistSuccess"));
+    } catch (error) {
+      messageApi.error(
+        error instanceof Error ? error.message : t("modal.aiAssistFailed")
+      );
+    } finally {
+      setIsAiEditing(false);
+    }
   };
 
   const isValidImagePath = (value: string) =>
@@ -151,7 +212,15 @@ export default function PostsPage() {
         throw new Error(data.error || t("modal.imageUploadFailed"));
       }
 
-      form.setFieldValue("imageUrl", data.url);
+      const currentImages = form.getFieldValue("imageUrls");
+      const nextImages = Array.isArray(currentImages)
+        ? Array.from(new Set([...currentImages, data.url]))
+        : [data.url];
+
+      form.setFieldsValue({
+        imageUrls: nextImages,
+        imageUrl: nextImages[0],
+      });
       messageApi.success(t("modal.imageUploaded"));
     } catch (error) {
       messageApi.error(
@@ -176,6 +245,9 @@ export default function PostsPage() {
     
     if (result.success) {
       messageApi.success(t("messages.publishedSuccess"));
+      if (result.warnings && result.warnings.length > 0) {
+        messageApi.warning(result.warnings.join(" "));
+      }
     } else {
       messageApi.error(result.error || t("messages.publishFailed"));
     }
@@ -241,9 +313,15 @@ export default function PostsPage() {
     setIsBulkProcessing(true);
     try {
       let successCount = 0;
+      const publishWarnings: string[] = [];
       for (const post of readyPosts) {
         const result = await publishPost(post.id);
-        if (result.success) successCount += 1;
+        if (result.success) {
+          successCount += 1;
+          if (result.warnings && result.warnings.length > 0) {
+            publishWarnings.push(...result.warnings);
+          }
+        }
       }
 
       if (successCount > 0) {
@@ -261,6 +339,9 @@ export default function PostsPage() {
         messageApi.info(
           t("bulk.publishSkippedPublished", { count: skippedPublishedCount })
         );
+      }
+      if (publishWarnings.length > 0) {
+        messageApi.warning(Array.from(new Set(publishWarnings)).join(" "));
       }
 
       setSelectedRowKeys([]);
@@ -541,7 +622,10 @@ export default function PostsPage() {
       <Modal
         title={editingPost ? t("modal.editTitle") : t("modal.createTitle")}
         open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
+        onCancel={() => {
+          setIsModalOpen(false);
+          setAiInstruction("");
+        }}
         footer={null}
         width={isMobile ? "95%" : 640}
         destroyOnClose
@@ -580,6 +664,38 @@ export default function PostsPage() {
             />
           </Form.Item>
 
+          {editingPost && (
+            <div className="mb-4 rounded-lg border border-indigo-100 bg-indigo-50 p-3">
+              <Text strong className="block mb-1">
+                {t("modal.aiAssistLabel")}
+              </Text>
+              <Text type="secondary" className="text-xs block mb-2">
+                {t("modal.aiAssistHelp")}
+              </Text>
+              <Input
+                value={aiInstruction}
+                onChange={(event) => setAiInstruction(event.target.value)}
+                placeholder={t("modal.aiAssistPlaceholder")}
+                maxLength={220}
+                showCount
+                onPressEnter={() => {
+                  if (!isAiEditing) {
+                    void handleAiAssistEdit();
+                  }
+                }}
+              />
+              <Button
+                icon={<RobotOutlined />}
+                className="mt-2"
+                loading={isAiEditing}
+                onClick={() => void handleAiAssistEdit()}
+                block={isMobile}
+              >
+                {isAiEditing ? t("modal.aiAssisting") : t("modal.aiAssistButton")}
+              </Button>
+            </div>
+          )}
+
           <Form.Item
             name="imageUrl"
             label={t("modal.imageUrlLabel")}
@@ -596,7 +712,22 @@ export default function PostsPage() {
               placeholder={t("modal.imageUrlPlaceholder")}
               size="large"
               allowClear
+              onBlur={(event) => {
+                const value = event.target.value?.trim();
+                if (!value) return;
+                const currentImages = form.getFieldValue("imageUrls");
+                const nextImages = Array.isArray(currentImages)
+                  ? Array.from(new Set([...currentImages, value]))
+                  : [value];
+                form.setFieldsValue({
+                  imageUrls: nextImages,
+                  imageUrl: nextImages[0],
+                });
+              }}
             />
+          </Form.Item>
+          <Form.Item name="imageUrls" hidden>
+            <Select mode="multiple" />
           </Form.Item>
 
           <div className="mb-4">
@@ -620,27 +751,40 @@ export default function PostsPage() {
             </Text>
           </div>
 
-          <Form.Item noStyle shouldUpdate={(prev, next) => prev.imageUrl !== next.imageUrl}>
+          <Form.Item noStyle shouldUpdate={(prev, next) => prev.imageUrls !== next.imageUrls}>
             {({ getFieldValue, setFieldValue }) => {
-              const imageUrl = getFieldValue("imageUrl");
-              if (!imageUrl) return null;
+              const imageUrls = Array.isArray(getFieldValue("imageUrls"))
+                ? (getFieldValue("imageUrls") as string[])
+                : [];
+              if (imageUrls.length === 0) return null;
 
               return (
                 <div className="mb-4 rounded-lg border border-gray-200 p-3 bg-gray-50">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={toPostImageProxyPath(imageUrl)}
-                    alt="Post preview"
-                    className="w-full object-cover rounded-md mb-2"
-                    style={{ maxHeight: 220 }}
-                  />
-                  <Button
-                    danger
-                    size="small"
-                    onClick={() => setFieldValue("imageUrl", undefined)}
-                  >
-                    {t("modal.removeImage")}
-                  </Button>
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    {imageUrls.map((imageUrl, index) => (
+                      <div key={`${imageUrl}-${index}`} className="relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={toPostImageProxyPath(imageUrl)}
+                          alt="Post preview"
+                          className="w-full object-cover rounded-md"
+                          style={{ maxHeight: 160 }}
+                        />
+                        <Button
+                          danger
+                          size="small"
+                          className="absolute top-1 right-1"
+                          onClick={() => {
+                            const nextImages = imageUrls.filter((_, i) => i !== index);
+                            setFieldValue("imageUrls", nextImages);
+                            setFieldValue("imageUrl", nextImages[0] || undefined);
+                          }}
+                        >
+                          {t("modal.removeImage")}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               );
             }}
@@ -751,15 +895,39 @@ export default function PostsPage() {
                 </pre>
               </div>
 
-              {/* Image */}
-              {viewingPost.imageUrl && (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={toPostImageProxyPath(viewingPost.imageUrl)}
-                  alt=""
-                  className="w-full object-cover"
-                  style={{ maxHeight: 260 }}
-                />
+              {/* Image(s) */}
+              {resolvePostImages(viewingPost).length > 0 && (
+                <div
+                  className={
+                    resolvePostImages(viewingPost).length === 1
+                      ? "px-4 pb-4"
+                      : "grid grid-cols-1 sm:grid-cols-2 gap-2 px-4 pb-4"
+                  }
+                >
+                  {resolvePostImages(viewingPost).map((imageUrl, index) => (
+                    <div
+                      key={`${imageUrl}-${index}`}
+                      className="rounded-lg overflow-hidden border border-gray-200 bg-gray-50"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={toPostImageProxyPath(imageUrl)}
+                        alt={`Post image ${index + 1}`}
+                        className="w-full object-contain"
+                        style={{
+                          maxHeight:
+                            resolvePostImages(viewingPost).length === 1
+                              ? isMobile
+                                ? 320
+                                : 460
+                              : isMobile
+                                ? 220
+                                : 280,
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
               )}
 
             </div>

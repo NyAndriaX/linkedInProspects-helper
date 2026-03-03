@@ -3,10 +3,22 @@ import { prisma } from "@/lib/prisma";
 import { ApiResponse, getAuthenticatedSession } from "@/lib/api-utils";
 import axios from "axios";
 import { deleteLinkedInPost, handleLinkedInError } from "@/lib/linkedin";
-import { deleteLocalPostImage } from "@/lib/post-images";
+import {
+  cleanupOrphanedLocalPostImages,
+  deleteLocalPostImage,
+  deleteLocalPostImages,
+} from "@/lib/post-images";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
+}
+
+function isUnknownImageUrlsError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return (
+    error.message.includes("Unknown argument `imageUrls`") ||
+    error.message.includes("Did you mean `imageUrl`")
+  );
 }
 
 /**
@@ -47,7 +59,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     if (!existingPost) return ApiResponse.notFound("Post not found");
 
-    const { title, content, status, imageUrl, publishedAt } = await request.json();
+    const { title, content, status, imageUrl, imageUrls, publishedAt } = await request.json();
+    const normalizedImageUrls = Array.isArray(imageUrls)
+      ? imageUrls.filter((item: unknown) => typeof item === "string" && item.trim())
+      : undefined;
 
     if (
       imageUrl !== undefined &&
@@ -56,19 +71,57 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     ) {
       await deleteLocalPostImage(existingPost.imageUrl);
     }
+    if (normalizedImageUrls !== undefined) {
+      const existingImages = Array.isArray((existingPost as { imageUrls?: string[] }).imageUrls)
+        ? ((existingPost as { imageUrls?: string[] }).imageUrls as string[])
+        : [];
+      const removedImages = existingImages.filter(
+        (existingImage) => !normalizedImageUrls.includes(existingImage)
+      );
+      await deleteLocalPostImages(removedImages);
+    }
 
-    const post = await prisma.post.update({
-      where: { id },
-      data: {
-        ...(title !== undefined && { title }),
-        ...(content !== undefined && { content }),
-        ...(status !== undefined && { status }),
-        ...(imageUrl !== undefined && { imageUrl }),
-        ...(publishedAt !== undefined && { publishedAt: new Date(publishedAt) }),
-      },
-    });
+    const updateData = {
+      ...(title !== undefined && { title }),
+      ...(content !== undefined && { content }),
+      ...(status !== undefined && { status }),
+      ...(imageUrl !== undefined && { imageUrl }),
+      ...(normalizedImageUrls !== undefined && { imageUrls: normalizedImageUrls }),
+      ...(publishedAt !== undefined && { publishedAt: new Date(publishedAt) }),
+    };
 
-    return ApiResponse.success(post);
+    try {
+      const post = await prisma.post.update({
+        where: { id },
+        data: updateData,
+      });
+      await cleanupOrphanedLocalPostImages({ gracePeriodMs: 0, limit: 300 });
+      return ApiResponse.success(post);
+    } catch (error) {
+      if (!isUnknownImageUrlsError(error)) throw error;
+
+      // Fallback for stale Prisma client that doesn't know imageUrls yet.
+      const fallbackPost = await prisma.post.update({
+        where: { id },
+        data: {
+          ...(title !== undefined && { title }),
+          ...(content !== undefined && { content }),
+          ...(status !== undefined && { status }),
+          ...(publishedAt !== undefined && { publishedAt: new Date(publishedAt) }),
+          ...(normalizedImageUrls !== undefined && {
+            imageUrl: normalizedImageUrls[0] || null,
+          }),
+          ...(imageUrl !== undefined && { imageUrl }),
+        },
+      });
+      await cleanupOrphanedLocalPostImages({ gracePeriodMs: 0, limit: 300 });
+
+      return ApiResponse.success({
+        ...fallbackPost,
+        warning:
+          "Prisma client is outdated: only the first image was saved. Run `npx prisma db push && npx prisma generate`.",
+      });
+    }
   } catch (error) {
     console.error("Error updating post:", error);
     return ApiResponse.error("Failed to update post");
@@ -110,7 +163,13 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     }
 
     await prisma.post.delete({ where: { id } });
+    await deleteLocalPostImages(
+      Array.isArray((existingPost as { imageUrls?: string[] }).imageUrls)
+        ? ((existingPost as { imageUrls?: string[] }).imageUrls as string[])
+        : []
+    );
     await deleteLocalPostImage(existingPost.imageUrl);
+    await cleanupOrphanedLocalPostImages({ gracePeriodMs: 0, limit: 300 });
 
     return ApiResponse.success({ success: true });
   } catch (error) {

@@ -74,9 +74,14 @@ Generate posts on DIFFERENT and FRESH topics.\n`
     : "";
 
   const commonThemeSection =
-    options?.topicSource === "common" && options?.selectedTheme
+    options?.topicSource === "common" &&
+    (options?.selectedThemes?.length || options?.selectedTheme)
       ? `\n## COMMON THEME MODE (HIGH PRIORITY)
-Selected theme: ${options.selectedTheme}
+Selected theme(s): ${
+          options?.selectedThemes?.length
+            ? options.selectedThemes.join(", ")
+            : options?.selectedTheme
+        }
 ${options.commonThemeBrief
   ? `Theme brief:
 - Trends: ${options.commonThemeBrief.trends.join(", ") || "N/A"}
@@ -234,6 +239,7 @@ export interface GenerationOptions {
   topic?: string;
   topicSource?: "auto" | "common";
   selectedTheme?: string;
+  selectedThemes?: string[];
   commonThemeBrief?: {
     trends: string[];
     tools: string[];

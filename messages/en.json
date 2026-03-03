@@ -157,7 +157,16 @@
       "statusReady": "Ready - Ready to publish",
       "statusPublished": "Published - Already posted",
       "saveChanges": "Save Changes",
-      "createPost": "Create Post"
+      "createPost": "Create Post",
+      "aiAssistLabel": "AI Rewrite Assistant",
+      "aiAssistHelp": "Write a simple instruction (e.g., add the project URL) and AI will update your text.",
+      "aiAssistPlaceholder": "Ex: Add my portfolio URL at the end with a natural sentence.",
+      "aiAssistButton": "Apply with AI",
+      "aiAssisting": "AI is updating the text...",
+      "aiAssistSuccess": "Content updated by AI",
+      "aiAssistMissingInstruction": "Please enter an instruction for AI first",
+      "aiAssistMissingContent": "Please write post content first",
+      "aiAssistFailed": "Unable to edit content with AI right now"
     },
     "view": {
       "created": "Created:",

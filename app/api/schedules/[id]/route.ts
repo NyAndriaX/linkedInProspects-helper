@@ -12,6 +12,10 @@ interface UpdateScheduleRequest {
   isActive?: boolean;
 }
 
+function isValidTimezone(timezone: string): boolean {
+  return Intl.supportedValuesOf("timeZone").includes(timezone);
+}
+
 // GET /api/schedules/[id] - Get a specific schedule
 export async function GET(
   request: NextRequest,
@@ -89,6 +93,9 @@ export async function PUT(
           return ApiResponse.badRequest(`Invalid time format: ${time}. Use HH:mm format.`);
         }
       }
+    }
+    if (timezone !== undefined && !isValidTimezone(timezone)) {
+      return ApiResponse.badRequest("Invalid timezone");
     }
 
     // Update the schedule

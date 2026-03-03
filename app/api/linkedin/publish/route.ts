@@ -15,6 +15,26 @@ interface PublishRequest {
   content: string;
   postId: string;
   imageUrl?: string | null;
+  imageUrls?: string[];
+}
+
+const LINKEDIN_MAX_COMMENTARY_LENGTH = 3000;
+
+function normalizeLinkedInCommentary(content: string): {
+  commentary: string;
+  warning?: string;
+} {
+  const trimmed = content.trim();
+  if (trimmed.length <= LINKEDIN_MAX_COMMENTARY_LENGTH) {
+    return { commentary: trimmed };
+  }
+
+  const shortened = `${trimmed.slice(0, LINKEDIN_MAX_COMMENTARY_LENGTH - 3)}...`;
+  return {
+    commentary: shortened,
+    warning:
+      "Your post exceeded LinkedIn's 3000-character limit and was automatically shortened.",
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -30,7 +50,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse and validate request body
-    const { content, postId, imageUrl }: PublishRequest = await request.json();
+    const { content, postId, imageUrl, imageUrls }: PublishRequest = await request.json();
+    const primaryImageUrl =
+      imageUrl ||
+      (Array.isArray(imageUrls) && imageUrls.length > 0 ? imageUrls[0] : null);
+    const warnings: string[] = [];
 
     if (!content?.trim()) {
       return NextResponse.json(
@@ -56,13 +80,20 @@ export async function POST(request: NextRequest) {
 
     console.log(`[LinkedIn Publish] Starting publication for postId: ${postId}`);
     console.log(`[LinkedIn Publish] LinkedIn ID: ${session.linkedInId}`);
-    console.log(`[LinkedIn Publish] Image URL: ${imageUrl || "none"}`);
+    console.log(`[LinkedIn Publish] Image URL: ${primaryImageUrl || "none"}`);
+
+    const { commentary, warning: commentaryWarning } =
+      normalizeLinkedInCommentary(content);
+    if (commentaryWarning) warnings.push(commentaryWarning);
+    if (Array.isArray(imageUrls) && imageUrls.length > 1) {
+      warnings.push("LinkedIn supports one image per post in this flow. Only the first image was used.");
+    }
 
     // If there's an image, upload it to LinkedIn first
     let postBody;
-    if (imageUrl) {
+    if (primaryImageUrl) {
       const normalizedImageUrl = toAbsolutePostImageUrl(
-        imageUrl,
+        primaryImageUrl,
         request.nextUrl.origin
       );
       const imageAsset = await prepareLinkedInImage(
@@ -73,14 +104,17 @@ export async function POST(request: NextRequest) {
 
       if (imageAsset) {
         console.log(`[LinkedIn Publish] Image asset ready: ${imageAsset}`);
-        postBody = buildPostBodyWithImage(session.linkedInId, content, imageAsset);
+        postBody = buildPostBodyWithImage(session.linkedInId, commentary, imageAsset);
       } else {
         // Image upload failed, fall back to text-only post
         console.warn("[LinkedIn Publish] Image upload failed, publishing text-only");
-        postBody = buildPostBody(session.linkedInId, content);
+        warnings.push(
+          "The image could not be uploaded to LinkedIn. The post was published as text-only."
+        );
+        postBody = buildPostBody(session.linkedInId, commentary);
       }
     } else {
-      postBody = buildPostBody(session.linkedInId, content);
+      postBody = buildPostBody(session.linkedInId, commentary);
     }
 
     // Publish to LinkedIn using the new REST Posts API
@@ -124,6 +158,7 @@ export async function POST(request: NextRequest) {
       success: true,
       linkedInPostId,
       postId,
+      warnings,
     });
   } catch (error) {
     console.error("LinkedIn publish error:", error);
