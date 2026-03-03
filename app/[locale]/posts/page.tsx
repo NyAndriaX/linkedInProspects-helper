@@ -18,6 +18,7 @@ import {
   Tooltip,
   Avatar,
   Upload,
+  Image,
 } from "antd";
 import {
   PlusOutlined,
@@ -763,12 +764,12 @@ export default function PostsPage() {
                   <div className="grid grid-cols-2 gap-2 mb-2">
                     {imageUrls.map((imageUrl, index) => (
                       <div key={`${imageUrl}-${index}`} className="relative">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
+                        <Image
                           src={toPostImageProxyPath(imageUrl)}
                           alt="Post preview"
                           className="w-full object-cover rounded-md"
                           style={{ maxHeight: 160 }}
+                          preview
                         />
                         <Button
                           danger
@@ -909,8 +910,7 @@ export default function PostsPage() {
                       key={`${imageUrl}-${index}`}
                       className="rounded-lg overflow-hidden border border-gray-200 bg-gray-50"
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                      <Image
                         src={toPostImageProxyPath(imageUrl)}
                         alt={`Post image ${index + 1}`}
                         className="w-full object-contain"
@@ -924,6 +924,7 @@ export default function PostsPage() {
                                 ? 220
                                 : 280,
                         }}
+                        preview
                       />
                     </div>
                   ))}
