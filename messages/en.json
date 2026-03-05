@@ -860,7 +860,28 @@
   "admin": {
     "title": "Admin dashboard",
     "subtitle": "Platform-level metrics visible to administrators only.",
-    "totalUsers": "Total registered users"
+    "totalUsers": "Total registered users",
+    "totalPosts": "Total generated posts",
+    "totalSchedules": "Total schedules",
+    "totalProspects": "Total prospects",
+    "avgPostsPerUser": "Average posts per user",
+    "avgSchedulesPerUser": "Average schedules per user",
+    "usersListTitle": "Users list",
+    "usersListSubtitle": "Detailed view of accounts and activity.",
+    "columns": {
+      "user": "User",
+      "email": "Email",
+      "posts": "Posts",
+      "schedules": "Schedules",
+      "prospects": "Prospects",
+      "alerts": "Alerts",
+      "createdAt": "Created at",
+      "lastActivity": "Last activity"
+    },
+    "unknownUser": "Unknown user",
+    "noLinkedInId": "No LinkedIn identifier",
+    "noEmail": "No email",
+    "noUsers": "No users found."
   },
   "industries": {
     "tech": "Technology / IT",

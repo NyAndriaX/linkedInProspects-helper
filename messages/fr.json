@@ -860,7 +860,28 @@
   "admin": {
     "title": "Tableau de bord admin",
     "subtitle": "Indicateurs globaux visibles uniquement par les administrateurs.",
-    "totalUsers": "Nombre total d'utilisateurs inscrits"
+    "totalUsers": "Nombre total d'utilisateurs inscrits",
+    "totalPosts": "Total des posts générés",
+    "totalSchedules": "Total des planifications",
+    "totalProspects": "Total des prospects",
+    "avgPostsPerUser": "Moyenne de posts par utilisateur",
+    "avgSchedulesPerUser": "Moyenne de planifications par utilisateur",
+    "usersListTitle": "Liste des utilisateurs",
+    "usersListSubtitle": "Vue détaillée des comptes et de leur activité.",
+    "columns": {
+      "user": "Utilisateur",
+      "email": "Email",
+      "posts": "Posts",
+      "schedules": "Schedules",
+      "prospects": "Prospects",
+      "alerts": "Alertes",
+      "createdAt": "Inscrit le",
+      "lastActivity": "Dernière activité"
+    },
+    "unknownUser": "Utilisateur inconnu",
+    "noLinkedInId": "Aucun identifiant LinkedIn",
+    "noEmail": "Aucun email",
+    "noUsers": "Aucun utilisateur trouvé."
   },
   "industries": {
     "tech": "Technologie / IT",
