@@ -24,6 +24,7 @@
     "ideas": "Ideas",
     "jobs": "Jobs",
     "settings": "Settings",
+    "admin": "Admin",
     "signOut": "Sign out"
   },
   "home": {
@@ -855,6 +856,11 @@
     },
     "continueWithLinkedIn": "Continue with LinkedIn",
     "terms": "By signing in, you agree to our terms of service."
+  },
+  "admin": {
+    "title": "Admin dashboard",
+    "subtitle": "Platform-level metrics visible to administrators only.",
+    "totalUsers": "Total registered users"
   },
   "industries": {
     "tech": "Technology / IT",

@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Layout, Menu, Badge, theme } from "antd";
-import { HomeOutlined, FileTextOutlined, SettingOutlined, ClockCircleOutlined, SendOutlined, TeamOutlined, BulbOutlined, SearchOutlined } from "@ant-design/icons";
+import { HomeOutlined, FileTextOutlined, SettingOutlined, ClockCircleOutlined, SendOutlined, TeamOutlined, BulbOutlined, SearchOutlined, SafetyCertificateOutlined } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Logo } from "@/components/ui/Logo";
 import { Link, usePathname } from "@/i18n/routing";
@@ -89,6 +90,31 @@ export function Sidebar({
   const t = useTranslations("navigation");
   const pathname = usePathname();
   const { token } = theme.useToken();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchAdminStatus() {
+      try {
+        const response = await fetch("/api/admin/me");
+        if (!response.ok) return;
+
+        const data = (await response.json()) as { isAdmin?: boolean };
+        if (isMounted) {
+          setIsAdmin(Boolean(data.isAdmin));
+        }
+      } catch {
+        // Silent fail: admin link remains hidden.
+      }
+    }
+
+    fetchAdminStatus();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const menuItems: MenuProps["items"] = [
     {
@@ -140,6 +166,15 @@ export function Sidebar({
       icon: <SettingOutlined />,
       label: <Link href="/settings">{t("settings")}</Link>,
     },
+    ...(isAdmin
+      ? [
+          {
+            key: "/admin",
+            icon: <SafetyCertificateOutlined />,
+            label: <Link href="/admin">{t("admin")}</Link>,
+          },
+        ]
+      : []),
   ];
 
   // Mobile: rendered inside Drawer, no Sider wrapper needed

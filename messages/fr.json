@@ -24,6 +24,7 @@
     "ideas": "Idées",
     "jobs": "Offres",
     "settings": "Paramètres",
+    "admin": "Admin",
     "signOut": "Déconnexion"
   },
   "home": {
@@ -855,6 +856,11 @@
     },
     "continueWithLinkedIn": "Continuer avec LinkedIn",
     "terms": "En vous connectant, vous acceptez nos conditions d'utilisation."
+  },
+  "admin": {
+    "title": "Tableau de bord admin",
+    "subtitle": "Indicateurs globaux visibles uniquement par les administrateurs.",
+    "totalUsers": "Nombre total d'utilisateurs inscrits"
   },
   "industries": {
     "tech": "Technologie / IT",
