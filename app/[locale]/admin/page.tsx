@@ -23,7 +23,7 @@ export default async function AdminPage({ params }: Props) {
   }
 
   const t = await getTranslations("admin");
-  const [totalUsers, totalPosts, totalSchedules, totalProspects, users] =
+  const [totalUsers, totalPosts, totalSchedules, totalProspects, users, postsByUserStatus] =
     await Promise.all([
       prisma.user.count(),
       prisma.post.count(),
@@ -48,7 +48,35 @@ export default async function AdminPage({ params }: Props) {
           },
         },
       }),
+      prisma.post.groupBy({
+        by: ["userId", "status"],
+        where: {
+          status: { in: ["draft", "published"] },
+        },
+        _count: {
+          _all: true,
+        },
+      }),
     ]);
+
+  const postStatusByUser = new Map<string, { draft: number; published: number }>();
+
+  postsByUserStatus.forEach((postGroup) => {
+    const current = postStatusByUser.get(postGroup.userId) ?? {
+      draft: 0,
+      published: 0,
+    };
+
+    if (postGroup.status === "draft") {
+      current.draft = postGroup._count._all;
+    }
+
+    if (postGroup.status === "published") {
+      current.published = postGroup._count._all;
+    }
+
+    postStatusByUser.set(postGroup.userId, current);
+  });
 
   const averagePostsPerUser =
     totalUsers === 0 ? 0 : Number((totalPosts / totalUsers).toFixed(1));
@@ -114,6 +142,12 @@ export default async function AdminPage({ params }: Props) {
                     {t("columns.posts")}
                   </th>
                   <th className="px-3 py-2 text-right font-medium text-gray-600">
+                    {t("columns.published")}
+                  </th>
+                  <th className="px-3 py-2 text-right font-medium text-gray-600">
+                    {t("columns.drafts")}
+                  </th>
+                  <th className="px-3 py-2 text-right font-medium text-gray-600">
                     {t("columns.schedules")}
                   </th>
                   <th className="px-3 py-2 text-right font-medium text-gray-600">
@@ -131,8 +165,14 @@ export default async function AdminPage({ params }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} className="border-b border-gray-100 align-top">
+                {users.map((user) => {
+                  const postStats = postStatusByUser.get(user.id) ?? {
+                    draft: 0,
+                    published: 0,
+                  };
+
+                  return (
+                    <tr key={user.id} className="border-b border-gray-100 align-top">
                     <td className="px-3 py-2">
                       <p className="font-medium text-gray-900">
                         {user.name || t("unknownUser")}
@@ -153,6 +193,12 @@ export default async function AdminPage({ params }: Props) {
                     <td className="px-3 py-2 text-right font-medium text-[#7c3aed]">
                       {user._count.posts}
                     </td>
+                    <td className="px-3 py-2 text-right font-medium text-[#16a34a]">
+                      {postStats.published}
+                    </td>
+                    <td className="px-3 py-2 text-right font-medium text-[#6b7280]">
+                      {postStats.draft}
+                    </td>
                     <td className="px-3 py-2 text-right font-medium text-[#f59e0b]">
                       {user._count.schedules}
                     </td>
@@ -168,8 +214,9 @@ export default async function AdminPage({ params }: Props) {
                     <td className="px-3 py-2 text-gray-700">
                       {formatDate(user.updatedAt)}
                     </td>
-                  </tr>
-                ))}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -872,6 +872,8 @@
       "user": "User",
       "email": "Email",
       "posts": "Posts",
+      "published": "Published",
+      "drafts": "Drafts",
       "schedules": "Schedules",
       "prospects": "Prospects",
       "alerts": "Alerts",

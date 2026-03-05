@@ -872,6 +872,8 @@
       "user": "Utilisateur",
       "email": "Email",
       "posts": "Posts",
+      "published": "Publiés",
+      "drafts": "Brouillons",
       "schedules": "Schedules",
       "prospects": "Prospects",
       "alerts": "Alertes",
